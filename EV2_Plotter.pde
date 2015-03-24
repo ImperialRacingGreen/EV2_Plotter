@@ -7,7 +7,7 @@ import processing.serial.*;
 /* SETTINGS BEGIN */
 
 // If you want to debug the plotter without using a real serial port set this to true
-boolean mockupSerial = true;
+boolean mockupSerial = false;
 
 /* SETTINGS END */
 
@@ -46,6 +46,7 @@ Textlabel bmsStatus;
 Textlabel batteryFaultLabel;
 Textlabel isolationFaultLabel;
 Textlabel aveThrottleLabel;
+Textlabel aveBrakeLabel;
 Textlabel lvBatteryLabel;
 Textlabel hvLabel;
 Textlabel tsaLabel;
@@ -192,6 +193,11 @@ void setup() {
                       .setFont(createFont(font_type,font_size))
                       ;
 
+  aveBrakeLabel = cp5.addTextlabel("aveBrakeLabel")
+                      .setColor(0)
+                      .setFont(createFont(font_type,font_size))
+                      ;
+
   lvBatteryLabel = cp5.addTextlabel("lvBatteryLabel")
                       .setColor(0)
                       .setFont(createFont(font_type,font_size))
@@ -220,14 +226,14 @@ void setup() {
   // String filename = "test.csv";
   output = createWriter(filename);
 
-  String firstLine = "TIME,RPM,TORQUE,MOTOR TEMP,MC TEMP,MC VOLTAGE,MC CURRENT,RFE,FRG,PACK VOLTAGE,BATTERY AVERAGE TEMPERATURE,BATTERY TEMP MIN,BATTERY TEMP MAX,BATTERY STATUS,BFAULT,IFAULT,AVETHROTTLE,LV,HV,TSA,SHUTDOWN RELAY,CAR STATE\n";
+  String firstLine = "TIME,RPM,TORQUE,MOTOR TEMP,MC TEMP,MC VOLTAGE,MC CURRENT,RFE,FRG,PACK VOLTAGE,BATTERY AVERAGE TEMPERATURE,BATTERY TEMP MIN,BATTERY TEMP MAX,BATTERY STATUS,BFAULT,IFAULT,AVETHROTTLE,AVEBRAKE,LV,HV,TSA,SHUTDOWN RELAY,CAR STATE\n";
   output.print(firstLine);
 
   // start serial communication
   if (!mockupSerial) {
     println(Serial.list());
     String serialPortName = Serial.list()[2];
-    serialPort = new Serial(this, Serial.list()[2], 115200);
+    serialPort = new Serial(this, Serial.list()[2], 9600);
   }
   else
     serialPort = null;
@@ -241,10 +247,11 @@ void draw() {
         inBuffer = mockupSerialFunction();
     }
     else {
-      inBuffer = serialPort.readStringUntil('\n');      
+      inBuffer = serialPort.readStringUntil('#');      
     }
 
     if (inBuffer != null) {
+      inBuffer = inBuffer.replace("@", "");
       now = millis();
       seconds = now/1000;
       millis = now-1000*seconds;
@@ -256,7 +263,7 @@ void draw() {
 
       String[] lineVariables = new String[3];
 
-      if (nums.length == 21) {
+      if (nums.length == 22) {
         background(255);
         drawTopValues(nums);
         drawBotValues(nums);
@@ -302,9 +309,7 @@ void draw() {
 void keyPressed() {
   if(key == 27){
     for(String x : values) {
-        String[] temp = x.split(",");
-        if (temp.length == 22)
-          output.print(x);
+        output.println(x);
     }
     output.flush();
     output.close();
@@ -449,6 +454,9 @@ void drawBotValues(String nums[]) {
   aveThrottleLabel.setText("Ave Throttle\n"+nums[15])
                   .setPosition(start_x + (variable_box_width + margin_x) * 7,start_y);
 
+  aveBrakeLabel.setText("Brake Throttle\n"+nums[16])
+                  .setPosition(start_x + (variable_box_width + margin_x) * 8,start_y);
+
   rect(start_x, start_y, variable_box_width,  variable_box_height);
   rect(start_x + (variable_box_width + margin_x) * 1, start_y,  variable_box_width, variable_box_height);
   rect(start_x + (variable_box_width + margin_x) * 2, start_y,  variable_box_width, variable_box_height);
@@ -484,44 +492,44 @@ void drawLeftValues(String nums[]) {
   int start_y = variable_box_height + 10 + margin_y;
 
   
-  lvBatteryLabel.setText("LV\n"+nums[16])
+  lvBatteryLabel.setText("LV\n"+nums[17])
                 .setPosition(start_x,start_y + (variable_box_height + margin_y) * 0);
 
-  hvLabel.setText("HV\n"+nums[17])
+  hvLabel.setText("HV\n"+nums[18])
          .setPosition(start_x,start_y + (variable_box_height + margin_y) * 1);
 
 
-  if(nums[18].equals("1")){
+  if(nums[19].equals("1")){
     tsaLabel.setText("TSA\nON");
   }
-  else if(nums[18].equals("0")) {
+  else if(nums[19].equals("0")) {
     tsaLabel.setText("TSA\nOFF");
   }
   tsaLabel.setPosition(start_x,start_y + (variable_box_height + margin_y) * 2);
 
-  if(nums[19].equals("1")){
+  if(nums[20].equals("1")){
     relayLabel.setText("Relay\nON");
   }
-  else if(nums[19].equals("0")) {
+  else if(nums[20].equals("0")) {
   // else{
     relayLabel.setText("Relay\nOFF");
   }
   relayLabel.setPosition(start_x,start_y + (variable_box_height + margin_y) * 3);
 
 
-  if(nums[20].equals("0\n")){
+  if(nums[21].equals("0#")){
     carStateLabel.setText("Car State\nIDLE");
   }
-  else if(nums[20].equals("1\n")) {
+  else if(nums[21].equals("1#")) {
     carStateLabel.setText("Car State\nDRIVE");
     fill(38, 166, 91);
   }
-  else if(nums[20].equals("2\n")) {
+  else if(nums[21].equals("2#")) {
     carStateLabel.setText("Car State\nFAULT");
     fill(242, 38, 19);
   }
   else {
-    carStateLabel.setText("Car State\n"+nums[20]);
+    carStateLabel.setText("Car State\n"+nums[21]);
   }
   carStateLabel.setPosition(start_x,start_y + (variable_box_height + margin_y) * 4);
   rect(start_x, start_y + (variable_box_height + margin_y) * 4,  variable_box_width, variable_box_height);
@@ -531,19 +539,19 @@ void drawLeftValues(String nums[]) {
   rect(start_x, start_y + (variable_box_height + margin_y) * 1,  variable_box_width, variable_box_height);
 
 
-  if(nums[18].equals("1")){
+  if(nums[19].equals("1")){
     fill(38, 166, 91);
   }
-  else if(nums[18].equals("0")) {
+  else if(nums[19].equals("0")) {
     fill(242, 38, 19);
   }
   rect(start_x, start_y + (variable_box_height + margin_y) * 2,  variable_box_width, variable_box_height);
   fill(255,255,255);
 
-  if(nums[19].equals("1")){
+  if(nums[20].equals("1")){
     fill(38, 166, 91);
   }
-  else if(nums[19].equals("0")) {
+  else if(nums[20].equals("0")) {
     fill(242, 38, 19);
   }
   rect(start_x, start_y + (variable_box_height + margin_y) * 3,  variable_box_width, variable_box_height);
