@@ -7,8 +7,8 @@ String mockupSerialFunction() {
     mockupDirection = -10;
   else if (mockupValue < -100)
     mockupDirection = 10;
-  String r = "";
-  for (int i = 0; i<21; i++) {
+  String r = "@";
+  for (int i = 0; i<23; i++) {
     switch (i) {
     // RPM
     case 0:
@@ -92,6 +92,14 @@ String mockupSerialFunction() {
       break;
     // CAR STATE
     case 20:
+      r += mockupValue/32+",";
+      break;
+    // CAR STATE
+    case 21:
+      r += mockupValue/32+",";
+      break;
+    // CAR STATE
+    case 22:
       r += mockupValue/32+"\n";
       break;
     }

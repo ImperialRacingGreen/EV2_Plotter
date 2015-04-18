@@ -4,6 +4,32 @@ import java.awt.BorderLayout;
 import controlP5.*; // http://www.sojamo.de/libraries/controlP5/
 import processing.serial.*;
 
+// int RPM = 0;
+// int TORQUE = 1;
+// int MOTOR_TEMP = 2;
+// int MC_TEMP = 3;
+// int MC_VOLTAGE = 4;
+// int MC_CURRENT = 5;
+// int MC_POWER = 6;
+// int RFE = 7;
+// int FRG = 8;
+
+// int BMS_VOLTAGE = 9;
+// int BMS_TEMP = 10;
+// int BMS_MINTEMP = 11;
+// int BMS_MAXTEMP = 12;
+// int BMS_STATUS = 13;
+
+// int BATT_FAULT = 14;
+// int ISO_FAULT = 15;
+// int AVE_THROTTLE = 16;
+// int BRAKE = 17;
+// int LV = 18;
+// int HV = 19;
+// int TSA = 20;
+// int RELAY = 21;
+// int CAR_STATE = 22;
+
 /* SETTINGS BEGIN */
 
 // If you want to debug the plotter without using a real serial port set this to true
@@ -34,6 +60,7 @@ Textlabel motorTempLabel;
 Textlabel mcTempLabel;
 Textlabel mcVoltageLabel;
 Textlabel mcCurrentLabel;
+Textlabel mcPowerLabel;
 Textlabel rfeLabel;
 Textlabel frgLabel;
 
@@ -142,6 +169,11 @@ void setup() {
                       .setFont(createFont(font_type,font_size))
                       ;
 
+  mcPowerLabel = cp5.addTextlabel("mcPowerLabel")
+                      .setColor(0)
+                      .setFont(createFont(font_type,font_size))
+                      ;
+
   rfeLabel = cp5.addTextlabel("rfeLabel")
                 .setColor(0)
                 .setFont(createFont(font_type,font_size))
@@ -237,6 +269,7 @@ void setup() {
   }
   else
     serialPort = null;
+
 }
 
 String inBuffer; // holds serial message
@@ -263,7 +296,7 @@ void draw() {
 
       String[] lineVariables = new String[3];
 
-      if (nums.length == 22) {
+      if (nums.length == 23) {
         background(255);
         drawTopValues(nums);
         drawBotValues(nums);
@@ -367,19 +400,19 @@ void drawTopValues(String nums[]) {
                 .setPosition(start_x + (variable_box_width + margin_x) * 5,start_y)
                 ;
 
-  if(nums[6].equals("1")){
+  if(nums[7].equals("1")){
     rfeLabel.setText("RFE\nON");
   }
-  else if(nums[6].equals("0")) {
+  else if(nums[7].equals("0")) {
     rfeLabel.setText("RFE\nOFF");
   }
   rfeLabel.setPosition(start_x + (variable_box_width + margin_x) * 6,start_y);
 
 
-  if(nums[7].equals("1")){
+  if(nums[8].equals("1")){
     frgLabel.setText("FRG\nON");
   }
-  else if(nums[7].equals("0")) {
+  else if(nums[8].equals("0")) {
   // else{
     frgLabel.setText("FRG\nOFF");
   }
@@ -392,19 +425,19 @@ void drawTopValues(String nums[]) {
   rect(start_x + (variable_box_width + margin_x) * 4, start_y,  variable_box_width, variable_box_height);
   rect(start_x + (variable_box_width + margin_x) * 5, start_y,  variable_box_width, variable_box_height);
   
-  if(nums[6].equals("1")){
+  if(nums[7].equals("1")){
     fill(38, 166, 91);
   }
-  else if(nums[6].equals("0")) {
+  else if(nums[7].equals("0")) {
     fill(242, 38, 19);
   }
   rect(start_x + (variable_box_width + margin_x) * 6, start_y,  variable_box_width, variable_box_height);
   fill(255,255,255);
 
-  if(nums[7].equals("1")){
+  if(nums[8].equals("1")){
     fill(38, 166, 91);
   }
-  else if(nums[7].equals("0")) {
+  else if(nums[8].equals("0")) {
     fill(242, 38, 19);
   }  
   rect(start_x + (variable_box_width + margin_x) * 7, start_y,  variable_box_width, variable_box_height);
@@ -418,44 +451,48 @@ void drawBotValues(String nums[]) {
   int start_y = window_height - variable_box_height - 10;
   int margin_x = 10;
 
-  bmsVoltageLabel.setText("Pack Voltage\n"+nums[8])
+  bmsVoltageLabel.setText("Pack Voltage\n"+nums[9])
                  .setPosition(start_x,start_y);
             
-  bmsTempLabel.setText("Batt Temp\n"+nums[9])
+  bmsTempLabel.setText("Batt Temp\n"+nums[10])
               .setPosition(start_x + (variable_box_width + margin_x) * 1,start_y);
 
-  bmsMinTemp.setText("Min Temp\n"+nums[10])
+  bmsMinTemp.setText("Min Temp\n"+nums[11])
             .setPosition(start_x + (variable_box_width + margin_x) * 2,start_y);
 
-  bmsMaxTemp.setText("Max Temp\n"+nums[11])
+  bmsMaxTemp.setText("Max Temp\n"+nums[12])
             .setPosition(start_x + (variable_box_width + margin_x) * 3,start_y);
 
-  bmsStatus.setText("BMS Status\n"+nums[12])
+  bmsStatus.setText("BMS Status\n"+nums[13])
            .setPosition(start_x + (variable_box_width + margin_x) * 4,start_y);
 
-  if(nums[13].equals("1")){
+  if(nums[14].equals("1")){
     batteryFaultLabel.setText("Batt Fault\nON");
   }
-  else if(nums[13].equals("0")) {
+  else if(nums[14].equals("0")) {
     batteryFaultLabel.setText("Batt Fault\nOFF");
   }
   batteryFaultLabel.setPosition(start_x + (variable_box_width + margin_x) * 5,start_y);
 
-  if(nums[14].equals("1")){
+  if(nums[15].equals("1")){
     isolationFaultLabel.setText("Iso Fault\nON");
   }
-  else if(nums[14].equals("0")) {
+  else if(nums[15].equals("0")) {
   // else{
     isolationFaultLabel.setText("Iso Fault\nOFF");
   }
   isolationFaultLabel.setPosition(start_x + (variable_box_width + margin_x) * 6,start_y);
 
 
-  aveThrottleLabel.setText("Ave Throttle\n"+nums[15])
+  aveThrottleLabel.setText("Ave Throttle\n"+nums[16])
                   .setPosition(start_x + (variable_box_width + margin_x) * 7,start_y);
 
-  aveBrakeLabel.setText("Brake Throttle\n"+nums[16])
+  aveBrakeLabel.setText("Brake Pedal\n"+nums[17])
                   .setPosition(start_x + (variable_box_width + margin_x) * 8,start_y);
+
+  mcPowerLabel.setText("MC Power\n"+nums[6])
+                .setPosition(start_x + (variable_box_width + margin_x) * 9,start_y)
+                ;
 
   rect(start_x, start_y, variable_box_width,  variable_box_height);
   rect(start_x + (variable_box_width + margin_x) * 1, start_y,  variable_box_width, variable_box_height);
@@ -463,19 +500,19 @@ void drawBotValues(String nums[]) {
   rect(start_x + (variable_box_width + margin_x) * 3, start_y,  variable_box_width, variable_box_height);
   rect(start_x + (variable_box_width + margin_x) * 4, start_y,  variable_box_width, variable_box_height);
 
-  if(nums[13].equals("1")){
+  if(nums[14].equals("1")){
     fill(38, 166, 91);
   }
-  else if(nums[13].equals("0")) {
+  else if(nums[14].equals("0")) {
     fill(242, 38, 19);
   }
   rect(start_x + (variable_box_width + margin_x) * 5, start_y,  variable_box_width, variable_box_height);
   fill(255,255,255);
 
-  if(nums[14].equals("1")){
+  if(nums[15].equals("1")){
     fill(38, 166, 91);
   }
-  else if(nums[14].equals("0")) {
+  else if(nums[15].equals("0")) {
     fill(242, 38, 19);
   }  
   rect(start_x + (variable_box_width + margin_x) * 6, start_y,  variable_box_width, variable_box_height);
@@ -492,44 +529,44 @@ void drawLeftValues(String nums[]) {
   int start_y = variable_box_height + 10 + margin_y;
 
   
-  lvBatteryLabel.setText("LV\n"+nums[17])
+  lvBatteryLabel.setText("LV\n"+nums[18])
                 .setPosition(start_x,start_y + (variable_box_height + margin_y) * 0);
 
-  hvLabel.setText("HV\n"+nums[18])
+  hvLabel.setText("HV\n"+nums[19])
          .setPosition(start_x,start_y + (variable_box_height + margin_y) * 1);
 
 
-  if(nums[19].equals("1")){
+  if(nums[20].equals("1")){
     tsaLabel.setText("TSA\nON");
   }
-  else if(nums[19].equals("0")) {
+  else if(nums[20].equals("0")) {
     tsaLabel.setText("TSA\nOFF");
   }
   tsaLabel.setPosition(start_x,start_y + (variable_box_height + margin_y) * 2);
 
-  if(nums[20].equals("1")){
+  if(nums[21].equals("1")){
     relayLabel.setText("Relay\nON");
   }
-  else if(nums[20].equals("0")) {
+  else if(nums[21].equals("0")) {
   // else{
     relayLabel.setText("Relay\nOFF");
   }
   relayLabel.setPosition(start_x,start_y + (variable_box_height + margin_y) * 3);
 
 
-  if(nums[21].equals("0#")){
+  if(nums[22].equals("0#")){
     carStateLabel.setText("Car State\nIDLE");
   }
-  else if(nums[21].equals("1#")) {
+  else if(nums[22].equals("1#")) {
     carStateLabel.setText("Car State\nDRIVE");
     fill(38, 166, 91);
   }
-  else if(nums[21].equals("2#")) {
+  else if(nums[22].equals("2#")) {
     carStateLabel.setText("Car State\nFAULT");
     fill(242, 38, 19);
   }
   else {
-    carStateLabel.setText("Car State\n"+nums[21]);
+    carStateLabel.setText("Car State\n"+nums[22]);
   }
   carStateLabel.setPosition(start_x,start_y + (variable_box_height + margin_y) * 4);
   rect(start_x, start_y + (variable_box_height + margin_y) * 4,  variable_box_width, variable_box_height);
@@ -539,19 +576,19 @@ void drawLeftValues(String nums[]) {
   rect(start_x, start_y + (variable_box_height + margin_y) * 1,  variable_box_width, variable_box_height);
 
 
-  if(nums[19].equals("1")){
+  if(nums[20].equals("1")){
     fill(38, 166, 91);
   }
-  else if(nums[19].equals("0")) {
+  else if(nums[20].equals("0")) {
     fill(242, 38, 19);
   }
   rect(start_x, start_y + (variable_box_height + margin_y) * 2,  variable_box_width, variable_box_height);
   fill(255,255,255);
 
-  if(nums[20].equals("1")){
+  if(nums[21].equals("1")){
     fill(38, 166, 91);
   }
-  else if(nums[20].equals("0")) {
+  else if(nums[21].equals("0")) {
     fill(242, 38, 19);
   }
   rect(start_x, start_y + (variable_box_height + margin_y) * 3,  variable_box_width, variable_box_height);
@@ -571,19 +608,19 @@ void drawRightValues(String nums[]) {
   rect(start_x, start_y + (variable_box_height + margin_y) * 3,  variable_box_width, variable_box_height);
   rect(start_x, start_y + (variable_box_height + margin_y) * 4,  variable_box_width, variable_box_height);
   
-  lvBatteryLabel.setText("LV\n"+nums[16])
+  lvBatteryLabel.setText("LV\n"+nums[17])
                 .setPosition(start_x,start_y);
 
-  hvLabel.setText("HV\n"+nums[17])
+  hvLabel.setText("HV\n"+nums[18])
          .setPosition(start_x,start_y + (variable_box_height + margin_y) * 1);
 
-  tsaLabel.setText("TSA\n"+nums[18])
+  tsaLabel.setText("TSA\n"+nums[19])
           .setPosition(start_x,start_y + (variable_box_height + margin_y) * 2);
 
-  relayLabel.setText("Relay\n"+nums[19])
+  relayLabel.setText("Relay\n"+nums[20])
             .setPosition(start_x,start_y + (variable_box_height + margin_y) * 3);
 
-  carStateLabel.setText("Car State\n"+nums[20])
+  carStateLabel.setText("Car State\n"+nums[21])
                .setPosition(start_x,start_y + (variable_box_height + margin_y) * 4);
 }
 
