@@ -27,8 +27,8 @@
     
 
       color   GraphColor;
-      color   BackgroundColor=color(255);  
-      color   StrokeColor=color(180);     
+      color   BackgroundColor=color(0);  
+      color   StrokeColor=color(255);     
       
       String  Title="Title";          // Default titles
       String  xLabel="x - Label";

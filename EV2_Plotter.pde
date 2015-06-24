@@ -37,15 +37,25 @@ ControlP5 cp5;
 JSONObject plotterConfigJSON;
 String topSketchPath = "";
 
-int window_width = 120 * 10 + 5 * 3;
-int window_height = 750;
-int font_size = 12;
-String font_type = "Verdana";
-
 int BOX_WIDTH = 120;
 int BOX_HEIGHT = 35;
 int BOX_MARGIN_X = 5;
 int BOX_MARGIN_Y = 5;
+int NUM_OF_BOX = 10;
+int NUM_OF_ROW = 3;
+
+int window_width = BOX_WIDTH * NUM_OF_BOX + BOX_MARGIN_X * 3;
+int window_height = 750;
+int font_size = 12;
+String font_type = "Verdana";
+
+// int GRAPH_WIDTH = window_width - BOX_MARGIN_X * 2;
+// int GRAPH_HEIGHT = window_height - (BOX_HEIGHT + BOX_MARGIN_Y) * NUM_OF_ROW - BOX_MARGIN_Y * 2;
+int GRAPH_WIDTH = 1055;
+int GRAPH_HEIGHT = 501;
+int GRAPH_POS_X = BOX_MARGIN_X;
+int GRAPH_POS_Y = (BOX_HEIGHT + BOX_MARGIN_Y) * NUM_OF_ROW + BOX_MARGIN_Y;
+
 // Labels for Variables
 List<Textlabel> variableLabels = new ArrayList<Textlabel>();
 Textlabel temp;
@@ -64,7 +74,9 @@ ArrayList<String> values = new ArrayList<String>();
 int i;
 
 // For Plotting
-Graph LineGraph = new Graph(235, 150, 750, 450, color (20, 20, 200));
+int error_x = 96;
+int error_y = 59;
+Graph LineGraph = new Graph(error_x + GRAPH_POS_X, error_y + GRAPH_POS_Y, GRAPH_WIDTH, 501, color (255,255,255));
 float[][] lineGraphValues = new float[3][100];
 float[] lineGraphSampleNumbers = new float[100];
 color[] graphColors = new color[3];
@@ -120,40 +132,40 @@ void draw() {
         drawBMSValues(nums);
         drawCarValues(nums);
 
-        // drawGraph(nums);
-        // lineVariables[0] = nums[0];
-        // lineVariables[1] = nums[1];
-        // lineVariables[2] = nums[2];
-        // int numberOfInvisibleLineGraphs = 0;
-        // for (i=0; i<lineVariables.length; i++) {
-        //   if (int(getPlotterConfigString("lgVisible"+(i+1))) == 0) {
-        //     numberOfInvisibleLineGraphs++;
-        //   }
-        // }
+        drawGraph(nums);
+        lineVariables[0] = nums[0];
+        lineVariables[1] = nums[1];
+        lineVariables[2] = nums[2];
+        int numberOfInvisibleLineGraphs = 0;
+        for (i=0; i<lineVariables.length; i++) {
+          if (int(getPlotterConfigString("lgVisible"+(i+1))) == 0) {
+            numberOfInvisibleLineGraphs++;
+          }
+        }
 
-        // // build the arrays for bar charts and line graphs
-        // for (i=0; i<lineVariables.length; i++) {
-        //   // update line graph
-        //   try {
-        //     if (i<lineGraphValues.length) {
-        //       for (int k=0; k<lineGraphValues[i].length-1; k++) {
-        //         lineGraphValues[i][k] = lineGraphValues[i][k+1];
-        //       }
-        //       lineGraphValues[i][lineGraphValues[i].length-1] = float(lineVariables[i])*float(getPlotterConfigString("lgMultiplier"+(i+1)));
-        //     }
-        //   }
-        //   catch (Exception e) {
-        //   }
-        // }
+        // build the arrays for bar charts and line graphs
+        for (i=0; i<lineVariables.length; i++) {
+          // update line graph
+          try {
+            if (i<lineGraphValues.length) {
+              for (int k=0; k<lineGraphValues[i].length-1; k++) {
+                lineGraphValues[i][k] = lineGraphValues[i][k+1];
+              }
+              lineGraphValues[i][lineGraphValues[i].length-1] = float(lineVariables[i])*float(getPlotterConfigString("lgMultiplier"+(i+1)));
+            }
+          }
+          catch (Exception e) {
+          }
+        }
       }
     }
     
-    // LineGraph.DrawAxis();
-    // for (int i=0;i<lineGraphValues.length; i++) {
-    //   LineGraph.GraphColor = graphColors[i];
-    //   if (int(getPlotterConfigString("lgVisible"+(i+1))) == 1)
-    //     LineGraph.LineGraph(lineGraphSampleNumbers, lineGraphValues[i]);
-    // }
+    LineGraph.DrawAxis();
+    for (int i=0;i<lineGraphValues.length; i++) {
+      LineGraph.GraphColor = graphColors[i];
+      if (int(getPlotterConfigString("lgVisible"+(i+1))) == 1)
+        LineGraph.LineGraph(lineGraphSampleNumbers, lineGraphValues[i]);
+    }
   }
 }
 
@@ -198,15 +210,15 @@ void windowSetup() {
   // cp5.addTextfield("lgMaxY").setPosition(x, y).setText(getPlotterConfigString("lgMaxY")).setWidth(40).setAutoClear(false);
   // cp5.addTextfield("lgMinY").setPosition(x, y = y + 450).setText(getPlotterConfigString("lgMinY")).setWidth(40).setAutoClear(false);
   
-  // setChartSettings();
-  // // build x axis values for the line graph
-  // for (int i=0; i<lineGraphValues.length; i++) {
-  //   for (int k=0; k<lineGraphValues[0].length; k++) {
-  //     lineGraphValues[i][k] = 0;
-  //     if (i==0)
-  //       lineGraphSampleNumbers[k] = k;
-  //   }
-  // }
+  setChartSettings();
+  // build x axis values for the line graph
+  for (int i=0; i<lineGraphValues.length; i++) {
+    for (int k=0; k<lineGraphValues[0].length; k++) {
+      lineGraphValues[i][k] = 0;
+      if (i==0)
+        lineGraphSampleNumbers[k] = k;
+    }
+  }
 
   // x = (120 + 10) * 9 + 10;
   // y = 10;
@@ -264,21 +276,55 @@ void setChartSettings() {
   LineGraph.xMin=-100;  
   LineGraph.yMax=int(getPlotterConfigString("lgMaxY")); 
   LineGraph.yMin=int(getPlotterConfigString("lgMinY"));
+  // LineGraph.yMin=0;
 }
 
 void drawGraph(String nums[]) {
-  int variable_box_width = 900;
-  int variable_box_height = 502;
-  int start_x = 10 + 120 + 10;
-  int start_y = 10 + 50 + 63;
+  int graph_box_width = window_width - 5*2;
+  int graph_box_height = window_height - BOX_HEIGHT*3 - 5*5;
+  int start_x = 5;
+  int start_y = BOX_HEIGHT*3 + 5*4;
 
-  rect(start_x, start_y, variable_box_width,  variable_box_height);
+  rect(start_x, start_y, graph_box_width,  graph_box_height);
 }
 
 void drawValues(String nums[], int start_index, int end_index, int start_x, int start_y, int margin_x, int margin_y, int hor, int ver){
   for (int i = start_index; i <= end_index; i++) {
-    // switch case to modify label and label colour
-    String label = variables[i] + "\n" + nums[i];
+    String value = nums[i];
+    switch (i) {
+      case 7: case 8: case 14: case 15: case 20: case 21:
+        if (value.equals("1")) {
+          value = "ON";
+          fill(38, 166, 91);
+        }
+        else {
+          value = "OFF";
+          fill(242, 38, 19);
+        }
+      break;  
+      case 22:
+        if (value.equals("0#") || value.equals("0")){
+          value = "IDLE";
+          noFill();
+        }
+        else if(value.equals("1#") || value.equals("1")){
+          fill(38, 166, 91);
+          value = "DRIVE";
+        } 
+        else if(value.equals("2#") || value.equals("2")){
+          fill(242, 38, 19);
+          value = "FAULT";
+        } 
+        else {
+          fill(242, 38, 19);
+          value += " UNKNOWN";
+        }
+      break;  
+      default :
+        noFill();
+      break;  
+    }
+    String label = variables[i] + "\n" + value;
     temp = variableLabels.get(i);
     temp.setText(label);
     temp.setPosition(
@@ -286,7 +332,7 @@ void drawValues(String nums[], int start_index, int end_index, int start_x, int 
       start_y + (BOX_HEIGHT + margin_y) * (i - start_index) * ver
     );
     stroke(255);
-    noFill();
+
     rect(
       start_x + (BOX_WIDTH + margin_x) * (i - start_index) * hor,
       start_y + (BOX_HEIGHT + margin_y) * (i - start_index) * ver, 
@@ -330,101 +376,6 @@ void drawBMSValues(String nums[]) {
   int margin_y = 0;
 
   drawValues(nums,9,13,start_x,start_y,margin_x,margin_y,1,0);
-}
-
-void drawRightValues(String nums[]) {
-  // int x = 0;
-  // int variable_box_width = 120;
-  // int variable_box_height = 50;
-  // int start_x = window_width - variable_box_width - 10;
-  // int start_y = variable_box_height + 10 + 63;
-  // int margin_y = 63;
-
-  // rect(start_x, start_y, variable_box_width,  variable_box_height);
-  // rect(start_x, start_y + (variable_box_height + margin_y) * 1,  variable_box_width, variable_box_height);
-  // rect(start_x, start_y + (variable_box_height + margin_y) * 2,  variable_box_width, variable_box_height);
-  // rect(start_x, start_y + (variable_box_height + margin_y) * 3,  variable_box_width, variable_box_height);
-  // rect(start_x, start_y + (variable_box_height + margin_y) * 4,  variable_box_width, variable_box_height);
-  
-  // lvBatteryLabel.setText("LV\n"+nums[17])
-  //               .setPosition(start_x,start_y);
-
-  // hvLabel.setText("HV\n"+nums[18])
-  //        .setPosition(start_x,start_y + (variable_box_height + margin_y) * 1);
-
-  // tsaLabel.setText("TSA\n"+nums[19])
-  //         .setPosition(start_x,start_y + (variable_box_height + margin_y) * 2);
-
-  // relayLabel.setText("Relay\n"+nums[20])
-  //           .setPosition(start_x,start_y + (variable_box_height + margin_y) * 3);
-
-  // carStateLabel.setText("Car State\n"+nums[21])
-  //              .setPosition(start_x,start_y + (variable_box_height + margin_y) * 4);
-
-  // lvBatteryLabel.setText("LV\n"+nums[18])
-  //               .setPosition(start_x,start_y + (variable_box_height + margin_y) * 0);
-
-  // hvLabel.setText("HV\n"+nums[19])
-  //        .setPosition(start_x,start_y + (variable_box_height + margin_y) * 1);
-
-
-  // if(nums[20].equals("1")){
-  //   tsaLabel.setText("TSA\nON");
-  // }
-  // else if(nums[20].equals("0")) {
-  //   tsaLabel.setText("TSA\nOFF");
-  // }
-  // tsaLabel.setPosition(start_x,start_y + (variable_box_height + margin_y) * 2);
-
-  // if(nums[21].equals("1")){
-  //   relayLabel.setText("Relay\nON");
-  // }
-  // else if(nums[21].equals("0")) {
-  // // else{
-  //   relayLabel.setText("Relay\nOFF");
-  // }
-  // relayLabel.setPosition(start_x,start_y + (variable_box_height + margin_y) * 3);
-
-
-  // if(nums[22].equals("0#")){
-  //   carStateLabel.setText("Car State\nIDLE");
-  // }
-  // else if(nums[22].equals("1#")) {
-  //   carStateLabel.setText("Car State\nDRIVE");
-  //   fill(38, 166, 91);
-  // }
-  // else if(nums[22].equals("2#")) {
-  //   carStateLabel.setText("Car State\nFAULT");
-  //   fill(242, 38, 19);
-  // }
-  // else {
-  //   carStateLabel.setText("Car State\n"+nums[22]);
-  // }
-  // carStateLabel.setPosition(start_x,start_y + (variable_box_height + margin_y) * 4);
-  // rect(start_x, start_y + (variable_box_height + margin_y) * 4,  variable_box_width, variable_box_height);
-  // fill(255,255,255);
-
-  // rect(start_x, start_y, variable_box_width,  variable_box_height);
-  // rect(start_x, start_y + (variable_box_height + margin_y) * 1,  variable_box_width, variable_box_height);
-
-
-  // if(nums[20].equals("1")){
-  //   fill(38, 166, 91);
-  // }
-  // else if(nums[20].equals("0")) {
-  //   fill(242, 38, 19);
-  // }
-  // rect(start_x, start_y + (variable_box_height + margin_y) * 2,  variable_box_width, variable_box_height);
-  // fill(255,255,255);
-
-  // if(nums[21].equals("1")){
-  //   fill(38, 166, 91);
-  // }
-  // else if(nums[21].equals("0")) {
-  //   fill(242, 38, 19);
-  // }
-  // rect(start_x, start_y + (variable_box_height + margin_y) * 3,  variable_box_width, variable_box_height);
-  // fill(255,255,255);
 }
 
 // handle gui actions

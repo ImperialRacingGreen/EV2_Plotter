@@ -100,7 +100,7 @@ String mockupSerialFunction() {
       break;
     // CAR STATE
     case 22:
-      r += mockupValue/32+"\n";
+      r += mockupValue/32+"#";
       break;
     }
     time++;
