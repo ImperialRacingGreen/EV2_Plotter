@@ -23,7 +23,7 @@ String variables[] = {
   "BATT FAULT",
   "ISO FAULT",
   "AVE THROTTLE",
-  "BRAKE",
+  "STARTSWITCH",
   "LV",
   "HV",
   "TSA",
@@ -31,7 +31,7 @@ String variables[] = {
   "CAR_STATE"
 };
 
-boolean mockupSerial = true;
+boolean mockupSerial = false;
 Serial serialPort; // Serial port object
 ControlP5 cp5;
 JSONObject plotterConfigJSON;
@@ -51,18 +51,27 @@ String font_type = "Verdana";
 
 // int GRAPH_WIDTH = window_width - BOX_MARGIN_X * 2;
 // int GRAPH_HEIGHT = window_height - (BOX_HEIGHT + BOX_MARGIN_Y) * NUM_OF_ROW - BOX_MARGIN_Y * 2;
-int GRAPH_WIDTH = 1055;
+int GRAPH_WIDTH = 1055 - BOX_WIDTH;
 int GRAPH_HEIGHT = 501;
 int GRAPH_POS_X = BOX_MARGIN_X;
 int GRAPH_POS_Y = (BOX_HEIGHT + BOX_MARGIN_Y) * NUM_OF_ROW + BOX_MARGIN_Y;
 
+String graphLines[] = {
+  "RPM",
+  "TORQUE",
+  "MOTORTEMP"
+};
+
 // Labels for Variables
 List<Textlabel> variableLabels = new ArrayList<Textlabel>();
+List<Textlabel> graphLinesLabel = new ArrayList<Textlabel>();
+
 Textlabel temp;
 
 Textlabel MCLabel;
 Textlabel BMSLabel;
 Textlabel CarLabel;
+
 
 // For Logging
 PrintWriter output;
@@ -76,7 +85,7 @@ int i;
 // For Plotting
 int error_x = 96;
 int error_y = 59;
-Graph LineGraph = new Graph(error_x + GRAPH_POS_X, error_y + GRAPH_POS_Y, GRAPH_WIDTH, 501, color (255,255,255));
+Graph LineGraph = new Graph(error_x + GRAPH_POS_X, error_y + GRAPH_POS_Y, GRAPH_WIDTH, 501, color (255));
 float[][] lineGraphValues = new float[3][100];
 float[] lineGraphSampleNumbers = new float[100];
 color[] graphColors = new color[3];
@@ -89,12 +98,14 @@ void setup() {
   //windowSetup2();  
   fileSetup();
   
-  // start serial communication
+  /*********************************************************/
+  // CHANGE SERIAL PORT TO CORRESPONDING PORT
   if (!mockupSerial) {
     println(Serial.list());
     String serialPortName = Serial.list()[2];
     serialPort = new Serial(this, Serial.list()[2], 9600);
   }
+  /*********************************************************/
   else
     serialPort = null;
 
@@ -133,6 +144,7 @@ void draw() {
         drawCarValues(nums);
 
         drawGraph(nums);
+        drawRightBar();
         lineVariables[0] = nums[0];
         lineVariables[1] = nums[1];
         lineVariables[2] = nums[2];
@@ -176,6 +188,13 @@ void labelSetup() {
                 .setFont(createFont(font_type,font_size))
                 ;
     variableLabels.add(temp);
+  }
+  for(int i = 0; i < 3; i++) {
+    temp = cp5.addTextlabel(graphLines[i] + "line")
+                .setColor(255)
+                .setFont(createFont(font_type,font_size))
+                ;
+    graphLinesLabel.add(temp);
   }
   MCLabel = cp5.addTextlabel("MC")
                 .setColor(255)
@@ -284,8 +303,43 @@ void drawGraph(String nums[]) {
   int graph_box_height = window_height - BOX_HEIGHT*3 - 5*5;
   int start_x = 5;
   int start_y = BOX_HEIGHT*3 + 5*4;
-
+  noFill();
   rect(start_x, start_y, graph_box_width,  graph_box_height);
+}
+
+void drawRightBar() {  
+  // graphColors[0] = color(38, 166, 91);
+  // graphColors[1] = color(248, 148, 6);
+  // graphColors[2] = color(207, 0, 15);
+
+  // 0 - RPM
+  // 1 - TORQUE
+  // 2 - MOTOR TEMP
+  int temp_start_x = 0;
+  int temp_start_y = 0;
+
+  for (int i=0; i<graphLinesLabel.size(); i++) {
+    String label = graphLines[i];
+    temp = graphLinesLabel.get(i);
+    temp.setText(label);
+    temp.setPosition(
+      window_width - BOX_WIDTH,
+      error_y + GRAPH_POS_Y + i*20
+    );
+
+    if (graphLines[i].equals("RPM")){
+      temp.setColorValue(#26A65B);
+    }
+    else if (graphLines[i].equals("TORQUE")){
+      temp.setColorValue(#F89406);
+    }
+    else if (graphLines[i].equals("MOTORTEMP")){
+      temp.setColorValue(#CF000F);
+    }
+    else {
+      temp.setColor(255);
+    }
+  }
 }
 
 void drawValues(String nums[], int start_index, int end_index, int start_x, int start_y, int margin_x, int margin_y, int hor, int ver){
