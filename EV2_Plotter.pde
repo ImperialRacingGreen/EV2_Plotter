@@ -139,7 +139,6 @@ void draw() {
       inBuffer = serialPort.readStringUntil('#');      
     }
     if (inBuffer != null) {
-      println(inBuffer);
       inBuffer = inBuffer.replace("@", "");
       inBuffer = inBuffer.replace("#", "");
       now = millis();
