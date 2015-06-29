@@ -8,27 +8,44 @@ import processing.serial.*;
 String variables[] = { 
   "RPM",
   "TORQUE",
-  "MOTOR TEMP",
+  "AIR TEMP",
   "MC TEMP",
+  "MOTOR TEMP",
   "MC VOLTAGE",
   "MC CURRENT",
   "MC POWER",
-  "RFE",
+  "MC CORE STATUS",
+  "MC ERROR",
+  "MC MESSAGE COUNT",
+  "RFE", 
   "FRG",
+  "MC GO",
   "BMS VOLTAGE",
+  "BMS MIN VOLTAGE",
+  "BMS MAX VOLTAGE",
+  "BMS CURRENT",
+  "BMS SOC",
   "BMS TEMP",
   "BMS MINTEMP",
   "BMS MAXTEMP",
   "BMS STATUS",
+  "BMS STATE",
+  "BMS CAPACITY",
+  "CAR_STATE",
   "BATT FAULT",
   "ISO FAULT",
+  "THROTTLE 1",
+  "THROTTLE 2",
   "AVE THROTTLE",
-  "STARTSWITCH",
+  "BRAKE",
   "LV",
   "HV",
+  "ERROR",
   "TSA",
   "RELAY",
-  "CAR_STATE"
+  "HIGH CURRENT",
+  "INSULATION PWM",
+  "START SWITCH"
 };
 
 boolean mockupSerial = false;
@@ -41,20 +58,21 @@ int BOX_WIDTH = 120;
 int BOX_HEIGHT = 35;
 int BOX_MARGIN_X = 5;
 int BOX_MARGIN_Y = 5;
-int NUM_OF_BOX = 10;
-int NUM_OF_ROW = 3;
-
-int window_width = BOX_WIDTH * NUM_OF_BOX + BOX_MARGIN_X * 3;
-int window_height = 750;
-int font_size = 12;
-String font_type = "Verdana";
+int NUM_OF_BOX = 11;
+int NUM_OF_ROW = 6;
 
 // int GRAPH_WIDTH = window_width - BOX_MARGIN_X * 2;
 // int GRAPH_HEIGHT = window_height - (BOX_HEIGHT + BOX_MARGIN_Y) * NUM_OF_ROW - BOX_MARGIN_Y * 2;
 int GRAPH_WIDTH = 1055 - BOX_WIDTH;
-int GRAPH_HEIGHT = 501;
+int GRAPH_HEIGHT = 600;
 int GRAPH_POS_X = BOX_MARGIN_X;
 int GRAPH_POS_Y = (BOX_HEIGHT + BOX_MARGIN_Y) * NUM_OF_ROW + BOX_MARGIN_Y;
+
+int window_width = BOX_WIDTH * NUM_OF_BOX + BOX_MARGIN_X * 3;
+// int window_height = (BOX_HEIGHT + BOX_MARGIN_Y)*NUM_OF_ROW + GRAPH_HEIGHT + 500;
+int window_height = 1000;
+int font_size = 12;
+String font_type = "Verdana";
 
 String graphLines[] = {
   "RPM",
@@ -85,7 +103,7 @@ int i;
 // For Plotting
 int error_x = 96;
 int error_y = 59;
-Graph LineGraph = new Graph(error_x + GRAPH_POS_X, error_y + GRAPH_POS_Y, GRAPH_WIDTH, 501, color (255));
+Graph LineGraph = new Graph(error_x + GRAPH_POS_X, error_y + GRAPH_POS_Y, GRAPH_WIDTH, GRAPH_HEIGHT, color (255));
 float[][] lineGraphValues = new float[3][100];
 float[] lineGraphSampleNumbers = new float[100];
 color[] graphColors = new color[3];
@@ -98,14 +116,12 @@ void setup() {
   //windowSetup2();  
   fileSetup();
   
-  /*********************************************************/
-  // CHANGE SERIAL PORT TO CORRESPONDING PORT
+  // start serial communication
   if (!mockupSerial) {
     println(Serial.list());
     String serialPortName = Serial.list()[2];
     serialPort = new Serial(this, Serial.list()[2], 9600);
   }
-  /*********************************************************/
   else
     serialPort = null;
 
@@ -122,14 +138,14 @@ void draw() {
     else {
       inBuffer = serialPort.readStringUntil('#');      
     }
-
     if (inBuffer != null) {
+      println(inBuffer);
       inBuffer = inBuffer.replace("@", "");
-      inBuffer = inBuffer.replace("\n", "");
+      inBuffer = inBuffer.replace("#", "");
       now = millis();
       seconds = now/1000;
       millis = now-1000*seconds;
-      toWrite = String.valueOf(seconds) + "." + String.valueOf(millis) + "," + inBuffer;
+      toWrite = String.valueOf(seconds) + "." + String.format("%03d", millis) + "," + inBuffer;
       values.add(toWrite);
 
       // split the string at delimiter (space)
@@ -137,7 +153,7 @@ void draw() {
 
       String[] lineVariables = new String[3];
 
-      if (nums.length == 23) {
+      if (nums.length == variables.length) {
         background(0);
         drawMCValues(nums);
         drawBMSValues(nums);
@@ -238,32 +254,16 @@ void windowSetup() {
         lineGraphSampleNumbers[k] = k;
     }
   }
-
-  // x = (120 + 10) * 9 + 10;
-  // y = 10;
-
-  // cp5.addTextlabel("label").setText("on/off").setPosition(x=x, y=y).setColor(0);
-  // cp5.addToggle("lgVisible1").setPosition(x=x, y=y+15).setValue(int(getPlotterConfigString("lgVisible1"))).setMode(ControlP5.SWITCH).setColorActive(graphColors[0]);
-  // cp5.addToggle("lgVisible2").setPosition(x=x, y=y+35).setValue(int(getPlotterConfigString("lgVisible2"))).setMode(ControlP5.SWITCH).setColorActive(graphColors[0]);
-  // cp5.addToggle("lgVisible3").setPosition(x=x, y=y+35).setValue(int(getPlotterConfigString("lgVisible3"))).setMode(ControlP5.SWITCH).setColorActive(graphColors[0]);
-  
-  // x += 45;
-  // y = 10;
-
-  // cp5.addTextlabel("multipliers").setText("multipliers").setPosition(x=x, y=y).setColor(0);
-  // cp5.addTextfield("1").setPosition(x=x, y=y+15).setText(getPlotterConfigString("lgMultiplier1")).setColorCaptionLabel(0).setWidth(40).setAutoClear(false);
-  // cp5.addTextfield("2").setPosition(x=x, y=y+35).setText(getPlotterConfigString("lgMultiplier2")).setColorCaptionLabel(0).setWidth(40).setAutoClear(false);
-  // cp5.addTextfield("3").setPosition(x, y=y+35).setText(getPlotterConfigString("lgMultiplier3")).setColorCaptionLabel(0).setWidth(40).setAutoClear(false);
 }
 
 void fileSetup() {
   String filename = String.format("logs/Test (%02d.%02d.%02d on %02d-%02d-%02d).csv", hour(),minute(),second(),year(),month(),day());
   output = createWriter(filename);
 
-  String firstLine = String.format("Data for Test at %02d:%02d:%02d on %02d-%02d-%02d \n\n", hour(),minute(),second(),year(),month(),day());
-  output.print(firstLine);
+  // String firstLine = String.format("Data for Test at %02d:%02d:%02d on %02d-%02d-%02d \n\n", hour(),minute(),second(),year(),month(),day());
+  // output.print(firstLine);
 
-  firstLine = "TIME,";
+  String firstLine = "TIME,";
 
   for (String variable : variables) {
     firstLine += variable;
@@ -278,10 +278,15 @@ void fileSetup() {
 void keyPressed() {
   if(key == 27){
     for(String x : values) {
-        output.println(x);
+
+        String[] nums = split(x, ',');
+        if (nums.length == variables.length + 1) {
+          output.println(x); 
+        }
     }
     output.flush();
     output.close();
+
     exit();
   }
 }
@@ -299,12 +304,12 @@ void setChartSettings() {
 }
 
 void drawGraph(String nums[]) {
-  int graph_box_width = window_width - 5*2;
-  int graph_box_height = window_height - BOX_HEIGHT*3 - 5*5;
-  int start_x = 5;
-  int start_y = BOX_HEIGHT*3 + 5*4;
-  noFill();
-  rect(start_x, start_y, graph_box_width,  graph_box_height);
+  // int graph_box_width = window_width - 5*2;
+  // int graph_box_height = window_height - BOX_HEIGHT*3 - 5*5;
+  // int start_x = 5;
+  // int start_y = BOX_HEIGHT*3 + 5*4;
+  // noFill();
+  // rect(start_x, start_y, graph_box_width,  graph_box_height);
 }
 
 void drawRightBar() {  
@@ -405,7 +410,8 @@ void drawCarValues(String nums[]) {
   int margin_x = 0;
   int margin_y = 0;
 
-  drawValues(nums,14,22,start_x,start_y,margin_x,margin_y,1,0);
+  drawValues(nums,25,34,start_x,start_y,margin_x,margin_y,1,0);
+  drawValues(nums,35,39,start_x,start_y+BOX_HEIGHT,margin_x,margin_y,1,0);
 }
 
 void drawMCValues(String nums[]) {
@@ -413,11 +419,12 @@ void drawMCValues(String nums[]) {
   MCLabel.setPosition(BOX_MARGIN_X,BOX_MARGIN_Y+BOX_HEIGHT+BOX_MARGIN_Y);
 
   int start_x = BOX_MARGIN_X + BOX_WIDTH + BOX_MARGIN_X;
-  int start_y = BOX_MARGIN_Y + BOX_HEIGHT + BOX_MARGIN_Y;
+  int start_y = BOX_MARGIN_Y + (BOX_HEIGHT + BOX_MARGIN_Y) * 2;
   int margin_x = 0;
   int margin_y = 0;
 
-  drawValues(nums,0,8,start_x,start_y,margin_x,margin_y,1,0);
+  drawValues(nums,0,9,start_x,start_y,margin_x,margin_y,1,0);
+  drawValues(nums,10,13,start_x,start_y + BOX_HEIGHT,margin_x,margin_y,1,0);
 }
 
 void drawBMSValues(String nums[]) {
@@ -425,11 +432,12 @@ void drawBMSValues(String nums[]) {
   BMSLabel.setPosition(BOX_MARGIN_X,BOX_MARGIN_Y+(BOX_HEIGHT+BOX_MARGIN_Y)*2);
 
   int start_x = BOX_MARGIN_X + BOX_WIDTH + BOX_MARGIN_X;
-  int start_y = BOX_MARGIN_Y + (BOX_HEIGHT + BOX_MARGIN_Y) * 2;
+  int start_y = BOX_MARGIN_Y + (BOX_HEIGHT + BOX_MARGIN_Y) * 4;
   int margin_x = 0;
   int margin_y = 0;
 
-  drawValues(nums,9,13,start_x,start_y,margin_x,margin_y,1,0);
+  drawValues(nums,14,23,start_x,start_y,margin_x,margin_y,1,0);
+  drawValues(nums,24,24,start_x,start_y+BOX_HEIGHT,margin_x,margin_y,1,0);
 }
 
 // handle gui actions

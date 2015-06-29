@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>EV2 - Data Viewer</title>
+		<script src="PapaParse-4.1.0/papaparse.min.js"></script>
+		<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+		<script type="text/javascript"
+			src="https://www.google.com/jsapi?autoload={
+			'modules':[{
+			'name':'visualization',
+			'version':'1.1',
+			'packages':['corechart','line']
+			}]
+			}">
+		</script>
+
+		<!-- Draw Graphs -->
+		<script>
+			var allData;
+			function handleFileSelect(evt) {
+				var file = evt.target.files[0];
+
+				Papa.parse(file, {
+					header: true,
+					dynamicTyping: true,
+					complete: function(results) {
+						allData = results;
+						drawCheckBoxes();
+						drawCharts(allData);
+					}
+				});
+
+			}
+
+			$(document).ready(function(){
+				$("#csv-file").change(handleFileSelect);
+			});
+
+			function drawCharts(data) {
+				var array = [["TIME", "RPM", "TORQUE", "MC POWER", "BMS TEMP"]];
+				// var array = [[]];
+				// for(x in allData.meta.fields) {
+				// 	var temp = allData.meta.fields[x];
+				// 	if (temp != "") {
+				// 		array[0].push(temp);
+				// 	}
+				// }
+
+				for (var i = 0; i < data.data.length - 1; i++) {
+					var temp = [];
+					for (x in array[0]) {
+						var current = array[0][x];
+						var entry = 0.0;
+						entry = data.data[i][current];
+
+						switch(current) {
+							case "RPM":
+
+							break;
+							case "TORQUE":
+
+							break;
+							case "MC POWER":
+								entry /= 100;
+							break;
+							default:
+							break;
+						}
+
+						temp.push(entry);
+					}
+					array.push(temp);
+				};
+
+				console.log(array);
+
+				// drawChart1(array);
+				drawChart2(array);
+			}
+
+			function drawChart1(data) {
+				var data = google.visualization.arrayToDataTable(data);
+
+				var options = {
+					title: 'EV2 Viewer',
+					curveType: 'function',
+					legend: { position: 'bottom' },
+					animation: {
+						startup: true,
+						duration: 1
+					}
+				};
+
+				var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));
+
+				chart.draw(data, options);
+			}
+
+			function drawChart2(data) {
+
+				var data = google.visualization.arrayToDataTable(data);
+
+				var width = $( document ).width()-50;
+				var options = {
+					chart: {
+					  title: 'EV2 Viewer',
+					},
+					width: width,
+					height: 850,
+					animation: {"startup": true}
+				};
+
+				var chart = new google.charts.Line(document.getElementById('linechart_material'));
+
+				chart.draw(data, options);
+			}
+
+			// Check Boxes
+			function drawCheckBoxes() {
+				var array = [];
+				for(x in allData.meta.fields) {
+					var temp = allData.meta.fields[x];
+					if (temp != "") {
+						array.push(temp);
+					}
+				}
+				var output = ""
+				for (x in array) {
+					if (x != 0){
+						var temp = drawBox(array[x]); 
+						output += temp;
+					}
+				}
+				$( "div#checkboxes" ).html(output);
+			}
+			function drawBox(title) {
+				return "<input type='checkbox' value='" + title + "'>" + title + "<br>";
+			}
+		</script>
+
+	</head>
+	<body>
+		<input type="file" id="csv-file" name="files" style="width:100%;"/>
+		<div id="linechart_material" style="padding:10px;padding-top:50px;"></div>
+		<!-- <div id="curve_chart" style="width: 100%; height: 850px"></div> -->
+		<div id ="checkboxes"></div>
+	</body>
+</html>
