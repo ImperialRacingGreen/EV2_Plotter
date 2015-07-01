@@ -7,6 +7,7 @@ import processing.serial.*;
 
 String variables[] = { 
   "RPM",
+  "SPEED",
   "TORQUE",
   "AIR TEMP",
   "MC TEMP",
@@ -54,8 +55,8 @@ ControlP5 cp5;
 JSONObject plotterConfigJSON;
 String topSketchPath = "";
 
-int BOX_WIDTH = 120;
-int BOX_HEIGHT = 35;
+int BOX_WIDTH = 140;
+int BOX_HEIGHT = 50;
 int BOX_MARGIN_X = 5;
 int BOX_MARGIN_Y = 5;
 int NUM_OF_BOX = 11;
@@ -71,7 +72,7 @@ int GRAPH_POS_Y = (BOX_HEIGHT + BOX_MARGIN_Y) * NUM_OF_ROW + BOX_MARGIN_Y;
 int window_width = BOX_WIDTH * NUM_OF_BOX + BOX_MARGIN_X * 3;
 // int window_height = (BOX_HEIGHT + BOX_MARGIN_Y)*NUM_OF_ROW + GRAPH_HEIGHT + 500;
 int window_height = 1000;
-int font_size = 12;
+int font_size = 20;
 String font_type = "Verdana";
 
 String graphLines[] = {
@@ -120,7 +121,7 @@ void setup() {
   if (!mockupSerial) {
     println(Serial.list());
     String serialPortName = Serial.list()[2];
-    serialPort = new Serial(this, Serial.list()[2], 9600);
+    serialPort = new Serial(this, Serial.list()[2], 115200);
   }
   else
     serialPort = null;
@@ -349,39 +350,39 @@ void drawRightBar() {
 void drawValues(String nums[], int start_index, int end_index, int start_x, int start_y, int margin_x, int margin_y, int hor, int ver){
   for (int i = start_index; i <= end_index; i++) {
     String value = nums[i];
-    switch (i) {
-      case 7: case 8: case 14: case 15: case 20: case 21:
-        if (value.equals("1")) {
-          value = "ON";
-          fill(38, 166, 91);
-        }
-        else {
-          value = "OFF";
-          fill(242, 38, 19);
-        }
-      break;  
-      case 22:
-        if (value.equals("0#") || value.equals("0")){
-          value = "IDLE";
-          noFill();
-        }
-        else if(value.equals("1#") || value.equals("1")){
-          fill(38, 166, 91);
-          value = "DRIVE";
-        } 
-        else if(value.equals("2#") || value.equals("2")){
-          fill(242, 38, 19);
-          value = "FAULT";
-        } 
-        else {
-          fill(242, 38, 19);
-          value += " UNKNOWN";
-        }
-      break;  
-      default :
-        noFill();
-      break;  
-    }
+    // switch (i) {
+    //   case 7: case 8: case 14: case 15: case 20: case 21:
+    //     if (value.equals("1")) {
+    //       value = "ON";
+    //       fill(38, 166, 91);
+    //     }
+    //     else {
+    //       value = "OFF";
+    //       fill(242, 38, 19);
+    //     }
+    //   break;  
+    //   case 22:
+    //     if (value.equals("0#") || value.equals("0")){
+    //       value = "IDLE";
+    //       noFill();
+    //     }
+    //     else if(value.equals("1#") || value.equals("1")){
+    //       fill(38, 166, 91);
+    //       value = "DRIVE";
+    //     } 
+    //     else if(value.equals("2#") || value.equals("2")){
+    //       fill(242, 38, 19);
+    //       value = "FAULT";
+    //     } 
+    //     else {
+    //       fill(242, 38, 19);
+    //       value += " UNKNOWN";
+    //     }
+    //   break;  
+    //   default :
+    //     noFill();
+    //   break;  
+    // }
     String label = variables[i] + "\n" + value;
     temp = variableLabels.get(i);
     temp.setText(label);
@@ -409,8 +410,8 @@ void drawCarValues(String nums[]) {
   int margin_x = 0;
   int margin_y = 0;
 
-  drawValues(nums,25,34,start_x,start_y,margin_x,margin_y,1,0);
-  drawValues(nums,35,39,start_x,start_y+BOX_HEIGHT,margin_x,margin_y,1,0);
+  drawValues(nums,26,35,start_x,start_y,margin_x,margin_y,1,0);
+  drawValues(nums,36,40,start_x,start_y+BOX_HEIGHT,margin_x,margin_y,1,0);
 }
 
 void drawMCValues(String nums[]) {
@@ -423,7 +424,13 @@ void drawMCValues(String nums[]) {
   int margin_y = 0;
 
   drawValues(nums,0,9,start_x,start_y,margin_x,margin_y,1,0);
-  drawValues(nums,10,13,start_x,start_y + BOX_HEIGHT,margin_x,margin_y,1,0);
+  drawValues(nums,10,14,start_x,start_y + BOX_HEIGHT,margin_x,margin_y,1,0);
+
+  // int rpm = Integer.parseInt(nums[0]);
+  // float speed = rpm * 0.032;
+  // String speed_value = String.format("%.2f", speed);
+  // String[] temp = {speed_value};
+  // drawValues(temp, 0, 0,start_x+BOX_WIDTH*4,start_y+BOX_HEIGHT,margin_x, margin_y,1,0);
 }
 
 void drawBMSValues(String nums[]) {
@@ -435,8 +442,8 @@ void drawBMSValues(String nums[]) {
   int margin_x = 0;
   int margin_y = 0;
 
-  drawValues(nums,14,23,start_x,start_y,margin_x,margin_y,1,0);
-  drawValues(nums,24,24,start_x,start_y+BOX_HEIGHT,margin_x,margin_y,1,0);
+  drawValues(nums,15,24,start_x,start_y,margin_x,margin_y,1,0);
+  drawValues(nums,25,25,start_x,start_y+BOX_HEIGHT,margin_x,margin_y,1,0);
 }
 
 // handle gui actions

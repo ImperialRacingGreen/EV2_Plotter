@@ -166,6 +166,10 @@ String mockupSerialFunction() {
     case 38:
       r += mockupValue/32+",";
       break;
+    // 
+    case 39:
+      r += mockupValue/32+",";
+      break;
     default :
       r += mockupValue/64 + "#";
     break;  

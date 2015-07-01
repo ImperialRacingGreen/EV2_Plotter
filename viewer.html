@@ -37,7 +37,7 @@
 			});
 
 			function drawCharts(data) {
-				var array = [["TIME", "RPM", "TORQUE", "MC POWER", "BMS TEMP"]];
+				var array = [["TIME", "RPM", "TORQUE", "MC POWER", "MC CURRENT"]];
 				// var array = [[]];
 				// for(x in allData.meta.fields) {
 				// 	var temp = allData.meta.fields[x];
@@ -48,6 +48,8 @@
 
 				for (var i = 0; i < data.data.length - 1; i++) {
 					var temp = [];
+					var power = 0;
+					var rpm = 0;
 					for (x in array[0]) {
 						var current = array[0][x];
 						var entry = 0.0;
@@ -55,23 +57,35 @@
 
 						switch(current) {
 							case "RPM":
-
+								rpm = entry;
+								rpm /= 60; //per second 
+								rpm *= 6.284 // rads 
 							break;
 							case "TORQUE":
 
 							break;
 							case "MC POWER":
+								if (entry < 0) {
+									entry = 0;
+								}
+								power = entry;
 								entry /= 100;
 							break;
 							default:
 							break;
 						}
-
 						temp.push(entry);
 					}
+					var powrpm = power/rpm;
+					if (powrpm <0 || rpm == 0 || rpm < 1) {
+						powrpm = 0;
+					}
+					// console.log("POWRPM ("+ powrpm +") = POWER("+power+")/RPM("+rpm+")");
+					// temp.push(powrpm);
+
 					array.push(temp);
 				};
-
+				// array[0].push("POW / RPM")
 				console.log(array);
 
 				// drawChart1(array);
