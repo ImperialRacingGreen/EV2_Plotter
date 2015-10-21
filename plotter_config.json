@@ -2,9 +2,9 @@
   "lgVisible1": "1.0",
   "lgVisible2": "1.0",
   "lgMinY": "-100",
-  "lgMultiplier3": "0.001",
+  "lgMultiplier3": "1",
   "lgMultiplier2": "1",
-  "lgMultiplier1": "0.0011",
   "lgVisible3": "1.0",
+  "lgMultiplier1": "0.1",
   "lgMaxY": "100"
 }

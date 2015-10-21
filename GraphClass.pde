@@ -27,8 +27,8 @@
     
 
       color   GraphColor;
-      color   BackgroundColor=color(255);  
-      color   StrokeColor=color(180);     
+      color   BackgroundColor=color(0);  
+      color   StrokeColor=color(255);     
       
       String  Title="Title";          // Default titles
       String  xLabel="x - Label";
@@ -67,7 +67,7 @@
         fill(BackgroundColor); color(0);stroke(0);strokeWeight(1);
         rect(xPos+Width/2-c/2,yPos-35,c,0);                         // Heading Rectangle  
         
-        fill(0);
+        fill(255);
         text(Title,xPos+Width/2,yPos-37);                            // Heading Title
         textAlign(CENTER);textSize(14);
         text(xLabel,xPos+Width/2,yPos+Height+t/1.5);                     // x-axis Label 
@@ -101,7 +101,7 @@
                 Sub-devisions for both axes, left and right
                ==========================================================================================  */
             
-            stroke(0);
+            stroke(255);
             
            for(int x=0; x<=xDiv; x++){
        
@@ -128,7 +128,7 @@
             line(xPos-3,float(y)/yDiv*Height+yPos,                // ...
                   xPos-7,float(y)/yDiv*Height+yPos);              // y-axis lines 
             
-            textAlign(RIGHT);fill(20);
+            textAlign(RIGHT);fill(255);
             
             String yAxis=str(yMin+float(y)/yDiv*(yMax-yMin));     // Make y Label a string
             String[] yAxisMS=split(yAxis,'.');                    // Split string

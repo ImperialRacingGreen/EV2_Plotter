@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>EV2 - Data Viewer</title>
+		<link href="c3.css" rel="stylesheet" type="text/css">
+		<script src="PapaParse-4.1.0/papaparse.min.js"></script>
+		<script src="jquery.min.js"></script>
+		<script type="text/javascript"
+			src="https://www.google.com/jsapi?autoload={
+			'modules':[{
+			'name':'visualization',
+			'version':'1.1',
+			'packages':['corechart','line']
+			}]
+			}">
+		</script>
+		<script src="d3.min.js"></script>
+		<script src="c3.min.js"></script>
+
+		<!-- Draw Graphs -->
+		<script>
+			var allData;
+			// var variables = [["TIME", "CAR_STATE", "RPM", "HV"]];
+			var variables = [[]];
+			var header = ["TIME"];
+			function handleFileSelect(evt) {
+				var file = evt.target.files[0];
+
+				header = ["TIME"];
+				Papa.parse(file, {
+					header: true,
+					dynamicTyping: true,
+					complete: function(results) {
+						allData = results;
+						drawCheckBoxes();
+						drawCharts(allData);
+						// header = allData.meta.fields;
+					}
+				});
+
+			}
+
+			$(document).ready(function(){
+				$("#csv-file").change(handleFileSelect);
+			});
+
+			function drawCharts(data) {
+				variables = [[]];
+				variables[0] = header;
+				for (var i = 0; i < data.data.length - 1; i++) {
+					var temp = [];
+					var power = 0;
+					var rpm = 0;
+					for (x in variables[0]) {
+						var current = variables[0][x];
+						var entry = 0.0;
+						entry = data.data[i][current];
+
+						switch(current) {
+							case "RPM":
+								rpm = entry;
+								rpm /= 60; //per second 
+								rpm *= 6.284 // rads 
+							break;
+							case "TORQUE":
+							break;
+							case "MC POWER":
+								if (entry < 0) {
+									entry = 0;
+								}
+								power = entry;
+							break;
+							case "HV":
+							break;
+							default:
+							break;
+						}
+						temp.push(entry);
+					}
+					var powrpm = power/rpm;
+					if (powrpm <0 || rpm == 0 || rpm < 1) {
+						powrpm = 0;
+					}
+					// console.log("POWRPM ("+ powrpm +") = POWER("+power+")/RPM("+rpm+")");
+					// temp.push(powrpm);
+
+					variables.push(temp);
+				};
+				// variables[0].push("POW / RPM")
+				console.log(variables);
+
+				// drawChart1(array);
+				if (variables[0].length >= 2) {
+					// drawChart2(variables);	
+				};
+
+				drawChart3(data);
+
+			}
+
+			function drawChart3(data) {
+				// get time axis
+				variables = [];
+				// go through whole data;
+				for (h in header) {
+					var temp = [];
+					temp.push(header[h]);
+					variables.push(temp);
+				}
+				for (var i = 0; i < data.data.length - 1; i++) {
+					for (x in variables) {
+						var current = variables[x][0];
+						var entry = data.data[i][current];
+						variables[x].push(entry);
+					}
+				};
+				// data1
+				var x_axis = {
+				};
+				var y_axis = {
+				};
+
+				for (var i = 1; i < variables.length; i++) {
+					var current = variables[i][0];
+					x_axis[current] = 'TIME';
+					y_axis[current] = {
+						show: true,
+						label: { // ADD
+							text: current,
+							position: 'outer-middle'
+						}
+					};
+				};
+				if (variables.length >= 2) {
+					var seconds = false;
+					var d = d3.time.format("%H:%M:%S.%L");
+					try {
+						d.parse(variables[0][1]);
+					}
+					catch(err) {
+						seconds = true;
+					}
+
+					if (!seconds) {
+						var chart = c3.generate({
+							data: {
+								xFormat: "%H:%M:%S.%L",
+								xs : x_axis,
+								columns: variables
+							},
+							axis: {
+								x: {
+									type: 'timeseries',
+									tick: {
+										format: "%H:%M:%S.%L",
+									}
+								},
+								y_axis
+							}
+						});	
+					}
+					else {
+						var chart = c3.generate({
+							data: {
+								xs : x_axis,
+								columns: variables
+							},
+							axis: {
+								y_axis
+							}
+						});
+					}
+					
+				}
+			}
+
+			// Check Boxes
+			function drawCheckBoxes() {
+				var array = [];
+				for(x in allData.meta.fields) {
+					var temp = allData.meta.fields[x];
+					if (temp != "") {
+						array.push(temp);
+					}
+				}
+				var output = ""
+				for (x in array) {
+					if (x != 0){
+						var temp = drawBox(array[x]); 
+						output += temp;
+					}
+				}
+				$( "div#checkboxes" ).html(output);
+			}
+
+			function drawBox(title) {
+				return "<input type='checkbox' value='" + title + "' onclick=\"checkBox(\'"+title+"\')\">" + title + "<br>";
+			}
+			function checkBox(title) {
+				if (header.indexOf(title) == -1) {
+					header.push(title);	
+				}
+				else {
+					header.splice(header.indexOf(title),1);
+				}
+				console.log(header);
+				drawCharts(allData);
+			}
+		</script>
+
+	</head>
+	<body>
+		<input type="file" id="csv-file" name="files" style="width:100%;"/>
+		<div id="linechart_material" style="padding:10px;padding-top:50px;"></div>
+		<!-- <div id="curve_chart" style="width: 100%; height: 850px"></div> -->
+		
+		<div id="chart" style="width: 100%; height: 850px"></div>
+		<div id ="checkboxes"></div>
+	</body>
+</html>

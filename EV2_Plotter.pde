@@ -1,84 +1,96 @@
-// import libraries
+import java.util.*;
+
 import java.awt.Frame;
 import java.awt.BorderLayout;
 import controlP5.*; // http://www.sojamo.de/libraries/controlP5/
 import processing.serial.*;
 
-// int RPM = 0;
-// int TORQUE = 1;
-// int MOTOR_TEMP = 2;
-// int MC_TEMP = 3;
-// int MC_VOLTAGE = 4;
-// int MC_CURRENT = 5;
-// int MC_POWER = 6;
-// int RFE = 7;
-// int FRG = 8;
+String variables[] = { 
+  "RPM",
+  "SPEED",
+  "TORQUE",
+  "AIR TEMP",
+  "MC TEMP",
+  "MOTOR TEMP",
+  "MC VOLTAGE",
+  "MC CURRENT",
+  "MC POWER",
+  "MC CORE STATUS",
+  "MC ERROR",
+  "MC MESSAGE COUNT",
+  "RFE", 
+  "FRG",
+  "MC GO",
+  "BMS VOLTAGE",
+  "BMS MIN VOLTAGE",
+  "BMS MAX VOLTAGE",
+  "BMS CURRENT",
+  "BMS SOC",
+  "BMS TEMP",
+  "BMS MINTEMP",
+  "BMS MAXTEMP",
+  "BMS STATUS",
+  "BMS STATE",
+  "BMS CAPACITY",
+  "CAR_STATE",
+  "BATT FAULT",
+  "ISO FAULT",
+  "THROTTLE 1",
+  "THROTTLE 2",
+  "AVE THROTTLE",
+  "BRAKE",
+  "LV",
+  "HV",
+  "ERROR",
+  "TSA",
+  "RELAY",
+  "HIGH CURRENT",
+  "INSULATION PWM",
+  "START SWITCH"
+};
 
-// int BMS_VOLTAGE = 9;
-// int BMS_TEMP = 10;
-// int BMS_MINTEMP = 11;
-// int BMS_MAXTEMP = 12;
-// int BMS_STATUS = 13;
-
-// int BATT_FAULT = 14;
-// int ISO_FAULT = 15;
-// int AVE_THROTTLE = 16;
-// int BRAKE = 17;
-// int LV = 18;
-// int HV = 19;
-// int TSA = 20;
-// int RELAY = 21;
-// int CAR_STATE = 22;
-
-/* SETTINGS BEGIN */
-
-// If you want to debug the plotter without using a real serial port set this to true
-boolean mockupSerial = false;
-
-/* SETTINGS END */
-
+boolean mockupSerial = true;
 Serial serialPort; // Serial port object
-
-// interface stuff
 ControlP5 cp5;
-
-// Settings for the plotter are saved in this file
 JSONObject plotterConfigJSON;
-
-// helper for saving the executing path
 String topSketchPath = "";
 
-int window_width = 1500;
-int window_height = 750;
-int font_size = 17;
+int BOX_WIDTH = 140;
+int BOX_HEIGHT = 50;
+int BOX_MARGIN_X = 5;
+int BOX_MARGIN_Y = 5;
+int NUM_OF_BOX = 11;
+int NUM_OF_ROW = 6;
+
+// int GRAPH_WIDTH = window_width - BOX_MARGIN_X * 2;
+// int GRAPH_HEIGHT = window_height - (BOX_HEIGHT + BOX_MARGIN_Y) * NUM_OF_ROW - BOX_MARGIN_Y * 2;
+int GRAPH_WIDTH = 1055 - BOX_WIDTH;
+int GRAPH_HEIGHT = 600;
+int GRAPH_POS_X = BOX_MARGIN_X;
+int GRAPH_POS_Y = (BOX_HEIGHT + BOX_MARGIN_Y) * NUM_OF_ROW + BOX_MARGIN_Y;
+
+int window_width = BOX_WIDTH * NUM_OF_BOX + BOX_MARGIN_X * 3;
+// int window_height = (BOX_HEIGHT + BOX_MARGIN_Y)*NUM_OF_ROW + GRAPH_HEIGHT + 500;
+int window_height = 1000;
+int font_size = 20;
 String font_type = "Verdana";
 
+String graphLines[] = {
+  "RPM",
+  "TORQUE",
+  "MOTORTEMP"
+};
+
 // Labels for Variables
-Textlabel rpmLabel;
-Textlabel torqueLabel;
-Textlabel motorTempLabel;
-Textlabel mcTempLabel;
-Textlabel mcVoltageLabel;
-Textlabel mcCurrentLabel;
-Textlabel mcPowerLabel;
-Textlabel rfeLabel;
-Textlabel frgLabel;
+List<Textlabel> variableLabels = new ArrayList<Textlabel>();
+List<Textlabel> graphLinesLabel = new ArrayList<Textlabel>();
 
-Textlabel bmsVoltageLabel;
-Textlabel bmsTempLabel;
-Textlabel bmsMinTemp;
-Textlabel bmsMaxTemp;
-Textlabel bmsStatus;
+Textlabel temp;
 
-Textlabel batteryFaultLabel;
-Textlabel isolationFaultLabel;
-Textlabel aveThrottleLabel;
-Textlabel aveBrakeLabel;
-Textlabel lvBatteryLabel;
-Textlabel hvLabel;
-Textlabel tsaLabel;
-Textlabel relayLabel;
-Textlabel carStateLabel;
+Textlabel MCLabel;
+Textlabel BMSLabel;
+Textlabel CarLabel;
+
 
 // For Logging
 PrintWriter output;
@@ -90,182 +102,27 @@ ArrayList<String> values = new ArrayList<String>();
 int i;
 
 // For Plotting
-Graph LineGraph = new Graph(235, 150, 750, 450, color (20, 20, 200));
+int error_x = 96;
+int error_y = 59;
+Graph LineGraph = new Graph(error_x + GRAPH_POS_X, error_y + GRAPH_POS_Y, GRAPH_WIDTH, GRAPH_HEIGHT, color (255));
 float[][] lineGraphValues = new float[3][100];
 float[] lineGraphSampleNumbers = new float[100];
 color[] graphColors = new color[3];
 
 void setup() {
-  frame.setTitle("EV2 DYNO");
-
-  size(window_width, window_height);
-  graphColors[0] = color(38, 166, 91);
-  graphColors[1] = color(248, 148, 6);
-  graphColors[2] = color(207, 0, 15);
-
-  // settings save file
-  topSketchPath = sketchPath;
-  plotterConfigJSON = loadJSONObject(topSketchPath+"/plotter_config.json");
-
-  // gui
   cp5 = new ControlP5(this);
-  int x = 180;
-  int y = 135;
 
-  cp5.addTextfield("lgMaxY").setPosition(x, y).setText(getPlotterConfigString("lgMaxY")).setWidth(40).setAutoClear(false);
-  cp5.addTextfield("lgMinY").setPosition(x, y = y + 450).setText(getPlotterConfigString("lgMinY")).setWidth(40).setAutoClear(false);
+  labelSetup();
+  windowSetup();
+  //windowSetup2();  
+  fileSetup();
+
   
-  setChartSettings();
-  // build x axis values for the line graph
-  for (int i=0; i<lineGraphValues.length; i++) {
-    for (int k=0; k<lineGraphValues[0].length; k++) {
-      lineGraphValues[i][k] = 0;
-      if (i==0)
-        lineGraphSampleNumbers[k] = k;
-    }
-  }
-
-  x = 1050;
-  y = 10;
-  cp5.addTextlabel("multipliers").setText("multipliers").setPosition(x=x, y=y).setColor(0);
-  cp5.addTextfield("lgMultiplier1").setPosition(x=x, y=y+15).setText(getPlotterConfigString("lgMultiplier1")).setColorCaptionLabel(0).setWidth(40).setAutoClear(false);
-  cp5.addTextfield("lgMultiplier2").setPosition(x=x, y=y+30).setText(getPlotterConfigString("lgMultiplier2")).setColorCaptionLabel(0).setWidth(40).setAutoClear(false);
-  cp5.addTextfield("lgMultiplier3").setPosition(x, y=y+45).setText(getPlotterConfigString("lgMultiplier3")).setColorCaptionLabel(0).setWidth(40).setAutoClear(false);
-  
-  x = 1120;
-  y = 10;
-  cp5.addTextlabel("label").setText("on/off").setPosition(x=x, y=y).setColor(0);
-  cp5.addToggle("lgVisible1").setPosition(x=x, y=y+15).setValue(int(getPlotterConfigString("lgVisible1"))).setMode(ControlP5.SWITCH).setColorActive(graphColors[0]);
-  cp5.addToggle("lgVisible2").setPosition(x=x, y=y+30).setValue(int(getPlotterConfigString("lgVisible2"))).setMode(ControlP5.SWITCH).setColorActive(graphColors[0]);
-  cp5.addToggle("lgVisible3").setPosition(x=x, y=y+45).setValue(int(getPlotterConfigString("lgVisible3"))).setMode(ControlP5.SWITCH).setColorActive(graphColors[0]);
-
-  rpmLabel = cp5.addTextlabel("rpmLabel")
-                .setColor(0)
-                .setFont(createFont(font_type,font_size))
-                ;
-
-  torqueLabel = cp5.addTextlabel("torqueLabel")
-                   .setColor(0)
-                   .setFont(createFont(font_type,font_size))
-                   ;
-            
-  motorTempLabel  = cp5.addTextlabel("motorTempLabel")
-                       .setColor(0)
-                       .setFont(createFont(font_type,font_size))
-                       ;
-
-  mcTempLabel = cp5.addTextlabel("mcTempLabel")
-                   .setColor(0)
-                   .setFont(createFont(font_type,font_size))
-                   ;
-
-  mcVoltageLabel = cp5.addTextlabel("mcVoltageLabel")
-                      .setColor(0)
-                      .setFont(createFont(font_type,font_size))
-                      ;
-
-  mcCurrentLabel = cp5.addTextlabel("mcCurrentLabel")
-                      .setColor(0)
-                      .setFont(createFont(font_type,font_size))
-                      ;
-
-  mcPowerLabel = cp5.addTextlabel("mcPowerLabel")
-                      .setColor(0)
-                      .setFont(createFont(font_type,font_size))
-                      ;
-
-  rfeLabel = cp5.addTextlabel("rfeLabel")
-                .setColor(0)
-                .setFont(createFont(font_type,font_size))
-                ;
-
-  frgLabel = cp5.addTextlabel("frgLabel")
-                .setColor(0)
-                .setFont(createFont(font_type,font_size))
-                ;
-
-
-  bmsVoltageLabel = cp5.addTextlabel("bmsVoltageLabel")
-                .setColor(0)
-                .setFont(createFont(font_type,font_size))
-                ;
-            
-  bmsTempLabel  = cp5.addTextlabel("bmsTempLabel")
-                       .setColor(0)
-                       .setFont(createFont(font_type,font_size))
-                       ;
-
-  bmsMinTemp = cp5.addTextlabel("bmsMinTemp")
-                   .setColor(0)
-                   .setFont(createFont(font_type,font_size))
-                   ;
-
-  bmsMaxTemp = cp5.addTextlabel("bmsMaxTemp")
-                      .setColor(0)
-                      .setFont(createFont(font_type,font_size))
-                      ;
-
-  bmsStatus = cp5.addTextlabel("bmsStatus")
-                      .setColor(0)
-                      .setFont(createFont(font_type,font_size))
-                      ;
-
-  batteryFaultLabel = cp5.addTextlabel("batteryFaultLabel")
-                .setColor(0)
-                .setFont(createFont(font_type,font_size))
-                ;
-
-  isolationFaultLabel = cp5.addTextlabel("isolationFaultLabel")
-                .setColor(0)
-                .setFont(createFont(font_type,font_size))
-                ;
-
-  aveThrottleLabel = cp5.addTextlabel("aveThrottleLabel")
-                      .setColor(0)
-                      .setFont(createFont(font_type,font_size))
-                      ;
-
-  aveBrakeLabel = cp5.addTextlabel("aveBrakeLabel")
-                      .setColor(0)
-                      .setFont(createFont(font_type,font_size))
-                      ;
-
-  lvBatteryLabel = cp5.addTextlabel("lvBatteryLabel")
-                      .setColor(0)
-                      .setFont(createFont(font_type,font_size))
-                      ;
-
-  hvLabel = cp5.addTextlabel("hvLabel")
-                .setColor(0)
-                .setFont(createFont(font_type,font_size))
-                ;
-
-  tsaLabel = cp5.addTextlabel("tsaLabel")
-                .setColor(0)
-                .setFont(createFont(font_type,font_size))
-                ;
-
-  relayLabel = cp5.addTextlabel("relayLabel")
-                .setColor(0)
-                .setFont(createFont(font_type,font_size))
-                ;
-
-  carStateLabel = cp5.addTextlabel("carStateLabel")
-                .setColor(0)
-                .setFont(createFont(font_type,font_size))
-                ;
-  String filename = String.format("logs/Test (%02d.%02d.%02d - %02d:%02d:%02d).csv", hour(),minute(),second(),year(),month(),day());
-  // String filename = "test.csv";
-  output = createWriter(filename);
-
-  String firstLine = "TIME,RPM,TORQUE,MOTOR TEMP,MC TEMP,MC VOLTAGE,MC CURRENT,RFE,FRG,PACK VOLTAGE,BATTERY AVERAGE TEMPERATURE,BATTERY TEMP MIN,BATTERY TEMP MAX,BATTERY STATUS,BFAULT,IFAULT,AVETHROTTLE,AVEBRAKE,LV,HV,TSA,SHUTDOWN RELAY,CAR STATE\n";
-  output.print(firstLine);
-
   // start serial communication
   if (!mockupSerial) {
     println(Serial.list());
     String serialPortName = Serial.list()[2];
-    serialPort = new Serial(this, Serial.list()[2], 9600);
+    serialPort = new Serial(this, Serial.list()[2], 115200);
   }
   else
     serialPort = null;
@@ -274,6 +131,7 @@ void setup() {
 
 String inBuffer; // holds serial message
 String toWrite;
+
 void draw() {
   if(mockupSerial || serialPort.available() > 0) {
     if(mockupSerial){
@@ -282,13 +140,13 @@ void draw() {
     else {
       inBuffer = serialPort.readStringUntil('#');      
     }
-
     if (inBuffer != null) {
       inBuffer = inBuffer.replace("@", "");
+      inBuffer = inBuffer.replace("#", "");
       now = millis();
       seconds = now/1000;
       millis = now-1000*seconds;
-      toWrite = String.valueOf(seconds) + "." + String.valueOf(millis) + "," + inBuffer;
+      toWrite = String.valueOf(seconds) + "." + String.format("%03d", millis) + "," + inBuffer;
       values.add(toWrite);
 
       // split the string at delimiter (space)
@@ -296,14 +154,14 @@ void draw() {
 
       String[] lineVariables = new String[3];
 
-      if (nums.length == 23) {
-        background(255);
-        drawTopValues(nums);
-        drawBotValues(nums);
-        drawLeftValues(nums);
-        // drawRightValues(nums);
+      if (nums.length == variables.length) {
+        background(0);
+        drawMCValues(nums);
+        drawBMSValues(nums);
+        drawCarValues(nums);
 
-        // drawGraph(nums);
+        drawGraph(nums);
+        drawRightBar();
         lineVariables[0] = nums[0];
         lineVariables[1] = nums[1];
         lineVariables[2] = nums[2];
@@ -330,6 +188,7 @@ void draw() {
         }
       }
     }
+    
     LineGraph.DrawAxis();
     for (int i=0;i<lineGraphValues.length; i++) {
       LineGraph.GraphColor = graphColors[i];
@@ -339,13 +198,96 @@ void draw() {
   }
 }
 
+void labelSetup() {
+  for (int i = 0; i < variables.length; i++) {
+    temp = cp5.addTextlabel(variables[i])
+                .setColor(255)
+                .setFont(createFont(font_type,font_size))
+                ;
+    variableLabels.add(temp);
+  }
+  for(int i = 0; i < 3; i++) {
+    temp = cp5.addTextlabel(graphLines[i] + "line")
+                .setColor(255)
+                .setFont(createFont(font_type,font_size))
+                ;
+    graphLinesLabel.add(temp);
+  }
+  MCLabel = cp5.addTextlabel("MC")
+                .setColor(255)
+                .setFont(createFont(font_type,font_size))
+                ;
+  BMSLabel = cp5.addTextlabel("BMS")
+                .setColor(255)
+                .setFont(createFont(font_type,font_size))
+                ;
+  CarLabel = cp5.addTextlabel("Car")
+                .setColor(255)
+                .setFont(createFont(font_type,font_size))
+                ;
+}
+
+void windowSetup() {
+  frame.setTitle("EV2 DYNO");
+
+  size(window_width, window_height);
+  graphColors[0] = color(38, 166, 91);
+  graphColors[1] = color(248, 148, 6);
+  graphColors[2] = color(207, 0, 15);
+
+  // settings save file
+  topSketchPath = sketchPath;
+  plotterConfigJSON = loadJSONObject(topSketchPath+"/plotter_config.json");
+
+  // gui
+  int x = 180;
+  int y = 135;
+
+  // cp5.addTextfield("lgMaxY").setPosition(x, y).setText(getPlotterConfigString("lgMaxY")).setWidth(40).setAutoClear(false);
+  // cp5.addTextfield("lgMinY").setPosition(x, y = y + 450).setText(getPlotterConfigString("lgMinY")).setWidth(40).setAutoClear(false);
+  
+  setChartSettings();
+  // build x axis values for the line graph
+  for (int i=0; i<lineGraphValues.length; i++) {
+    for (int k=0; k<lineGraphValues[0].length; k++) {
+      lineGraphValues[i][k] = 0;
+      if (i==0)
+        lineGraphSampleNumbers[k] = k;
+    }
+  }
+}
+
+void fileSetup() {
+  String filename = String.format("logs/Test (%02d.%02d.%02d on %02d-%02d-%02d).csv", hour(),minute(),second(),year(),month(),day());
+  output = createWriter(filename);
+
+  // String firstLine = String.format("Data for Test at %02d:%02d:%02d on %02d-%02d-%02d \n\n", hour(),minute(),second(),year(),month(),day());
+  // output.print(firstLine);
+
+  String firstLine = "TIME,";
+
+  for (String variable : variables) {
+    firstLine += variable;
+    firstLine += ",";
+  }
+
+  firstLine += "\n";
+
+  output.print(firstLine);
+}
+
 void keyPressed() {
   if(key == 27){
     for(String x : values) {
-        output.println(x);
+
+        String[] nums = split(x, ',');
+        if (nums.length == variables.length + 1) {
+          output.println(x); 
+        }
     }
     output.flush();
     output.close();
+
     exit();
   }
 }
@@ -359,269 +301,150 @@ void setChartSettings() {
   LineGraph.xMin=-100;  
   LineGraph.yMax=int(getPlotterConfigString("lgMaxY")); 
   LineGraph.yMin=int(getPlotterConfigString("lgMinY"));
+  // LineGraph.yMin=0;
 }
 
 void drawGraph(String nums[]) {
-  int variable_box_width = 900;
-  int variable_box_height = 502;
-  int start_x = 10 + 120 + 10;
-  int start_y = 10 + 50 + 63;
-
-  rect(start_x, start_y, variable_box_width,  variable_box_height);
+  // int graph_box_width = window_width - 5*2;
+  // int graph_box_height = window_height - BOX_HEIGHT*3 - 5*5;
+  // int start_x = 5;
+  // int start_y = BOX_HEIGHT*3 + 5*4;
+  // noFill();
+  // rect(start_x, start_y, graph_box_width,  graph_box_height);
 }
 
-void drawTopValues(String nums[]) {
-  int variable_box_width = 120;
-  int variable_box_height = 50;
-  int start_x = 10;
-  int start_y = 10;
-  int margin_x = 10;
+void drawRightBar() {  
+  // graphColors[0] = color(38, 166, 91);
+  // graphColors[1] = color(248, 148, 6);
+  // graphColors[2] = color(207, 0, 15);
 
-  rpmLabel.setText("RPM\n"+nums[0])
-          .setPosition(start_x,start_y);
+  // 0 - RPM
+  // 1 - TORQUE
+  // 2 - MOTOR TEMP
+  int temp_start_x = 0;
+  int temp_start_y = 0;
 
-  torqueLabel.setText("Torque\n"+nums[1]+"%")
-             .setPosition(start_x + (variable_box_width + margin_x) * 1,start_y)
-             ;
-          
-  motorTempLabel.setText("Motor Temp\n"+nums[2])
-                .setPosition(start_x + (variable_box_width + margin_x) * 2,start_y)
-                ;
-          
-  mcTempLabel.setText("MC Temp\n"+nums[3])
-                .setPosition(start_x + (variable_box_width + margin_x) * 3,start_y)
-                ;
-          
-  mcVoltageLabel.setText("MC Voltage\n"+nums[4])
-                .setPosition(start_x + (variable_box_width + margin_x) * 4,start_y)
-                ;
-          
-  mcCurrentLabel.setText("MC Current\n"+nums[5])
-                .setPosition(start_x + (variable_box_width + margin_x) * 5,start_y)
-                ;
+  for (int i=0; i<graphLinesLabel.size(); i++) {
+    String label = graphLines[i];
+    temp = graphLinesLabel.get(i);
+    temp.setText(label);
+    temp.setPosition(
+      window_width - BOX_WIDTH,
+      error_y + GRAPH_POS_Y + i*20
+    );
 
-  if(nums[7].equals("1")){
-    rfeLabel.setText("RFE\nON");
+    if (graphLines[i].equals("RPM")){
+      temp.setColorValue(#26A65B);
+    }
+    else if (graphLines[i].equals("TORQUE")){
+      temp.setColorValue(#F89406);
+    }
+    else if (graphLines[i].equals("MOTORTEMP")){
+      temp.setColorValue(#CF000F);
+    }
+    else {
+      temp.setColor(255);
+    }
   }
-  else if(nums[7].equals("0")) {
-    rfeLabel.setText("RFE\nOFF");
-  }
-  rfeLabel.setPosition(start_x + (variable_box_width + margin_x) * 6,start_y);
+}
 
+void drawValues(String nums[], int start_index, int end_index, int start_x, int start_y, int margin_x, int margin_y, int hor, int ver){
+  for (int i = start_index; i <= end_index; i++) {
+    String value = nums[i];
+    // switch (i) {
+    //   case 7: case 8: case 14: case 15: case 20: case 21:
+    //     if (value.equals("1")) {
+    //       value = "ON";
+    //       fill(38, 166, 91);
+    //     }
+    //     else {
+    //       value = "OFF";
+    //       fill(242, 38, 19);
+    //     }
+    //   break;  
+    //   case 22:
+    //     if (value.equals("0#") || value.equals("0")){
+    //       value = "IDLE";
+    //       noFill();
+    //     }
+    //     else if(value.equals("1#") || value.equals("1")){
+    //       fill(38, 166, 91);
+    //       value = "DRIVE";
+    //     } 
+    //     else if(value.equals("2#") || value.equals("2")){
+    //       fill(242, 38, 19);
+    //       value = "FAULT";
+    //     } 
+    //     else {
+    //       fill(242, 38, 19);
+    //       value += " UNKNOWN";
+    //     }
+    //   break;  
+    //   default :
+    //     noFill();
+    //   break;  
+    // }
+    String label = variables[i] + "\n" + value;
+    temp = variableLabels.get(i);
+    temp.setText(label);
+    temp.setPosition(
+      start_x + (BOX_WIDTH + margin_x) * (i - start_index) * hor,
+      start_y + (BOX_HEIGHT + margin_y) * (i - start_index) * ver
+    );
+    stroke(255);
 
-  if(nums[8].equals("1")){
-    frgLabel.setText("FRG\nON");
+    rect(
+      start_x + (BOX_WIDTH + margin_x) * (i - start_index) * hor,
+      start_y + (BOX_HEIGHT + margin_y) * (i - start_index) * ver, 
+      BOX_WIDTH,  BOX_HEIGHT
+    );
   }
-  else if(nums[8].equals("0")) {
-  // else{
-    frgLabel.setText("FRG\nOFF");
-  }
-  frgLabel.setPosition(start_x + (variable_box_width + margin_x) * 7,start_y);
+}
 
-  rect(start_x + (variable_box_width + margin_x) * 0, start_y, variable_box_width,  variable_box_height);
-  rect(start_x + (variable_box_width + margin_x) * 1, start_y,  variable_box_width, variable_box_height);
-  rect(start_x + (variable_box_width + margin_x) * 2, start_y,  variable_box_width, variable_box_height);
-  rect(start_x + (variable_box_width + margin_x) * 3, start_y,  variable_box_width, variable_box_height);
-  rect(start_x + (variable_box_width + margin_x) * 4, start_y,  variable_box_width, variable_box_height);
-  rect(start_x + (variable_box_width + margin_x) * 5, start_y,  variable_box_width, variable_box_height);
+void drawCarValues(String nums[]) {
+  CarLabel.setText("Car");
+  CarLabel.setPosition(BOX_MARGIN_X,BOX_MARGIN_Y);
   
-  if(nums[7].equals("1")){
-    fill(38, 166, 91);
-  }
-  else if(nums[7].equals("0")) {
-    fill(242, 38, 19);
-  }
-  rect(start_x + (variable_box_width + margin_x) * 6, start_y,  variable_box_width, variable_box_height);
-  fill(255,255,255);
-
-  if(nums[8].equals("1")){
-    fill(38, 166, 91);
-  }
-  else if(nums[8].equals("0")) {
-    fill(242, 38, 19);
-  }  
-  rect(start_x + (variable_box_width + margin_x) * 7, start_y,  variable_box_width, variable_box_height);
-  fill(255,255,255);
-}
-
-void drawBotValues(String nums[]) {
-  int variable_box_width = 120;
-  int variable_box_height = 50;
-  int start_x = 10;
-  int start_y = window_height - variable_box_height - 10;
-  int margin_x = 10;
-
-  bmsVoltageLabel.setText("Pack Voltage\n"+nums[9])
-                 .setPosition(start_x,start_y);
-            
-  bmsTempLabel.setText("Batt Temp\n"+nums[10])
-              .setPosition(start_x + (variable_box_width + margin_x) * 1,start_y);
-
-  bmsMinTemp.setText("Min Temp\n"+nums[11])
-            .setPosition(start_x + (variable_box_width + margin_x) * 2,start_y);
-
-  bmsMaxTemp.setText("Max Temp\n"+nums[12])
-            .setPosition(start_x + (variable_box_width + margin_x) * 3,start_y);
-
-  bmsStatus.setText("BMS Status\n"+nums[13])
-           .setPosition(start_x + (variable_box_width + margin_x) * 4,start_y);
-
-  if(nums[14].equals("1")){
-    batteryFaultLabel.setText("Batt Fault\nON");
-  }
-  else if(nums[14].equals("0")) {
-    batteryFaultLabel.setText("Batt Fault\nOFF");
-  }
-  batteryFaultLabel.setPosition(start_x + (variable_box_width + margin_x) * 5,start_y);
-
-  if(nums[15].equals("1")){
-    isolationFaultLabel.setText("Iso Fault\nON");
-  }
-  else if(nums[15].equals("0")) {
-  // else{
-    isolationFaultLabel.setText("Iso Fault\nOFF");
-  }
-  isolationFaultLabel.setPosition(start_x + (variable_box_width + margin_x) * 6,start_y);
-
-
-  aveThrottleLabel.setText("Ave Throttle\n"+nums[16])
-                  .setPosition(start_x + (variable_box_width + margin_x) * 7,start_y);
-
-  aveBrakeLabel.setText("Brake Pedal\n"+nums[17])
-                  .setPosition(start_x + (variable_box_width + margin_x) * 8,start_y);
-
-  mcPowerLabel.setText("MC Power\n"+nums[6])
-                .setPosition(start_x + (variable_box_width + margin_x) * 9,start_y)
-                ;
-
-  rect(start_x, start_y, variable_box_width,  variable_box_height);
-  rect(start_x + (variable_box_width + margin_x) * 1, start_y,  variable_box_width, variable_box_height);
-  rect(start_x + (variable_box_width + margin_x) * 2, start_y,  variable_box_width, variable_box_height);
-  rect(start_x + (variable_box_width + margin_x) * 3, start_y,  variable_box_width, variable_box_height);
-  rect(start_x + (variable_box_width + margin_x) * 4, start_y,  variable_box_width, variable_box_height);
-
-  if(nums[14].equals("1")){
-    fill(38, 166, 91);
-  }
-  else if(nums[14].equals("0")) {
-    fill(242, 38, 19);
-  }
-  rect(start_x + (variable_box_width + margin_x) * 5, start_y,  variable_box_width, variable_box_height);
-  fill(255,255,255);
-
-  if(nums[15].equals("1")){
-    fill(38, 166, 91);
-  }
-  else if(nums[15].equals("0")) {
-    fill(242, 38, 19);
-  }  
-  rect(start_x + (variable_box_width + margin_x) * 6, start_y,  variable_box_width, variable_box_height);
-  fill(255,255,255);
-
-  rect(start_x + (variable_box_width + margin_x) * 7, start_y,  variable_box_width, variable_box_height);
-}
-
-void drawLeftValues(String nums[]) {
-  int variable_box_width = 120;
-  int variable_box_height = 50;
-  int start_x = 10;
-  int margin_y = 63;
-  int start_y = variable_box_height + 10 + margin_y;
-
+  int start_x = BOX_MARGIN_X + BOX_WIDTH + BOX_MARGIN_X;
+  int start_y = BOX_MARGIN_Y;
   
-  lvBatteryLabel.setText("LV\n"+nums[18])
-                .setPosition(start_x,start_y + (variable_box_height + margin_y) * 0);
+  int margin_x = 0;
+  int margin_y = 0;
 
-  hvLabel.setText("HV\n"+nums[19])
-         .setPosition(start_x,start_y + (variable_box_height + margin_y) * 1);
-
-
-  if(nums[20].equals("1")){
-    tsaLabel.setText("TSA\nON");
-  }
-  else if(nums[20].equals("0")) {
-    tsaLabel.setText("TSA\nOFF");
-  }
-  tsaLabel.setPosition(start_x,start_y + (variable_box_height + margin_y) * 2);
-
-  if(nums[21].equals("1")){
-    relayLabel.setText("Relay\nON");
-  }
-  else if(nums[21].equals("0")) {
-  // else{
-    relayLabel.setText("Relay\nOFF");
-  }
-  relayLabel.setPosition(start_x,start_y + (variable_box_height + margin_y) * 3);
-
-
-  if(nums[22].equals("0#")){
-    carStateLabel.setText("Car State\nIDLE");
-  }
-  else if(nums[22].equals("1#")) {
-    carStateLabel.setText("Car State\nDRIVE");
-    fill(38, 166, 91);
-  }
-  else if(nums[22].equals("2#")) {
-    carStateLabel.setText("Car State\nFAULT");
-    fill(242, 38, 19);
-  }
-  else {
-    carStateLabel.setText("Car State\n"+nums[22]);
-  }
-  carStateLabel.setPosition(start_x,start_y + (variable_box_height + margin_y) * 4);
-  rect(start_x, start_y + (variable_box_height + margin_y) * 4,  variable_box_width, variable_box_height);
-  fill(255,255,255);
-
-  rect(start_x, start_y, variable_box_width,  variable_box_height);
-  rect(start_x, start_y + (variable_box_height + margin_y) * 1,  variable_box_width, variable_box_height);
-
-
-  if(nums[20].equals("1")){
-    fill(38, 166, 91);
-  }
-  else if(nums[20].equals("0")) {
-    fill(242, 38, 19);
-  }
-  rect(start_x, start_y + (variable_box_height + margin_y) * 2,  variable_box_width, variable_box_height);
-  fill(255,255,255);
-
-  if(nums[21].equals("1")){
-    fill(38, 166, 91);
-  }
-  else if(nums[21].equals("0")) {
-    fill(242, 38, 19);
-  }
-  rect(start_x, start_y + (variable_box_height + margin_y) * 3,  variable_box_width, variable_box_height);
-  fill(255,255,255);
+  drawValues(nums,26,35,start_x,start_y,margin_x,margin_y,1,0);
+  drawValues(nums,36,40,start_x,start_y+BOX_HEIGHT,margin_x,margin_y,1,0);
 }
 
-void drawRightValues(String nums[]) {
-  int variable_box_width = 120;
-  int variable_box_height = 50;
-  int start_x = window_width - variable_box_width - 10;
-  int start_y = variable_box_height + 10 + 63;
-  int margin_y = 63;
+void drawMCValues(String nums[]) {
+  MCLabel.setText("Motor\nController");
+  MCLabel.setPosition(BOX_MARGIN_X,BOX_MARGIN_Y+BOX_HEIGHT+BOX_MARGIN_Y);
 
-  rect(start_x, start_y, variable_box_width,  variable_box_height);
-  rect(start_x, start_y + (variable_box_height + margin_y) * 1,  variable_box_width, variable_box_height);
-  rect(start_x, start_y + (variable_box_height + margin_y) * 2,  variable_box_width, variable_box_height);
-  rect(start_x, start_y + (variable_box_height + margin_y) * 3,  variable_box_width, variable_box_height);
-  rect(start_x, start_y + (variable_box_height + margin_y) * 4,  variable_box_width, variable_box_height);
-  
-  lvBatteryLabel.setText("LV\n"+nums[17])
-                .setPosition(start_x,start_y);
+  int start_x = BOX_MARGIN_X + BOX_WIDTH + BOX_MARGIN_X;
+  int start_y = BOX_MARGIN_Y + (BOX_HEIGHT + BOX_MARGIN_Y) * 2;
+  int margin_x = 0;
+  int margin_y = 0;
 
-  hvLabel.setText("HV\n"+nums[18])
-         .setPosition(start_x,start_y + (variable_box_height + margin_y) * 1);
+  drawValues(nums,0,9,start_x,start_y,margin_x,margin_y,1,0);
+  drawValues(nums,10,14,start_x,start_y + BOX_HEIGHT,margin_x,margin_y,1,0);
 
-  tsaLabel.setText("TSA\n"+nums[19])
-          .setPosition(start_x,start_y + (variable_box_height + margin_y) * 2);
+  // int rpm = Integer.parseInt(nums[0]);
+  // float speed = rpm * 0.032;
+  // String speed_value = String.format("%.2f", speed);
+  // String[] temp = {speed_value};
+  // drawValues(temp, 0, 0,start_x+BOX_WIDTH*4,start_y+BOX_HEIGHT,margin_x, margin_y,1,0);
+}
 
-  relayLabel.setText("Relay\n"+nums[20])
-            .setPosition(start_x,start_y + (variable_box_height + margin_y) * 3);
+void drawBMSValues(String nums[]) {
+  BMSLabel.setText("BMS");
+  BMSLabel.setPosition(BOX_MARGIN_X,BOX_MARGIN_Y+(BOX_HEIGHT+BOX_MARGIN_Y)*2);
 
-  carStateLabel.setText("Car State\n"+nums[21])
-               .setPosition(start_x,start_y + (variable_box_height + margin_y) * 4);
+  int start_x = BOX_MARGIN_X + BOX_WIDTH + BOX_MARGIN_X;
+  int start_y = BOX_MARGIN_Y + (BOX_HEIGHT + BOX_MARGIN_Y) * 4;
+  int margin_x = 0;
+  int margin_y = 0;
+
+  drawValues(nums,15,24,start_x,start_y,margin_x,margin_y,1,0);
+  drawValues(nums,25,25,start_x,start_y+BOX_HEIGHT,margin_x,margin_y,1,0);
 }
 
 // handle gui actions

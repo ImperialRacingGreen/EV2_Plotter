@@ -8,11 +8,11 @@ String mockupSerialFunction() {
   else if (mockupValue < -100)
     mockupDirection = 10;
   String r = "@";
-  for (int i = 0; i<23; i++) {
+  for (int i = 0; i<variables.length; i++) {
     switch (i) {
     // RPM
     case 0:
-      r += (int)(100*cos(time*(2*3.14)/5000)+1000) +",";
+      r += (int)(100*cos(time*(2*3.14)/5000)+500) +",";
       break;
     // TORQUE
     case 1:
@@ -34,9 +34,9 @@ String mockupSerialFunction() {
     case 5:
       r += 10*cos(time*(2*3.14)/5000)+100+",";
       break;
-    // RFE
+    // MC POWER
     case 6:
-      r += (int)(2*cos(time*(2*3.14)/5000)+2)/2+",";
+      r += (int)(100*cos(time*(2*3.14)/5000)+30000) +",";
       break;
     // FRG
     case 7:
@@ -100,8 +100,79 @@ String mockupSerialFunction() {
       break;
     // CAR STATE
     case 22:
-      r += mockupValue/32+"\n";
+      r += mockupValue/32+",";
       break;
+    // CAR STATE
+    case 23:
+      r += mockupValue/32+",";
+      break;
+    // CAR STATE
+    case 24:
+      r += mockupValue/32+",";
+      break;
+    // CAR STATE
+    case 25:
+      r += mockupValue/32+",";
+      break;
+    // CAR STATE
+    case 26:
+      r += mockupValue/32+",";
+      break;
+    // CAR STATE
+    case 27:
+      r += mockupValue/32+",";
+      break;
+    // CAR STATE
+    case 28:
+      r += mockupValue/32+",";
+      break;
+    // CAR STATE
+    case 29:
+      r += mockupValue/32+",";
+      break;
+    // CAR STATE
+    case 30:
+      r += mockupValue/32+",";
+      break;
+    // CAR STATE
+    case 31:
+      r += mockupValue/32+",";
+      break;
+    // CAR STATE
+    case 32:
+      r += mockupValue/32+",";
+      break;
+    // CAR STATE
+    case 33:
+      r += mockupValue/32+",";
+      break;
+    // CAR STATE
+    case 34:
+      r += mockupValue/32+",";
+      break;
+    // CAR STATE
+    case 35:
+      r += mockupValue/32+",";
+      break;
+    // CAR STATE
+    case 36:
+      r += mockupValue/32+",";
+      break;
+    // CAR STATE
+    case 37:
+      r += mockupValue/32+",";
+      break;
+    // CAR STATE
+    case 38:
+      r += mockupValue/32+",";
+      break;
+    // 
+    case 39:
+      r += mockupValue/32+",";
+      break;
+    default :
+      r += mockupValue/64 + "#";
+    break;  
     }
     time++;
   }
