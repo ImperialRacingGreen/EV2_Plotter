@@ -2,8 +2,9 @@
 <html>
 	<head>
 		<title>EV2 - Data Viewer</title>
+		<link href="c3.css" rel="stylesheet" type="text/css">
 		<script src="PapaParse-4.1.0/papaparse.min.js"></script>
-		<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+		<script src="jquery.min.js"></script>
 		<script type="text/javascript"
 			src="https://www.google.com/jsapi?autoload={
 			'modules':[{
@@ -13,13 +14,19 @@
 			}]
 			}">
 		</script>
+		<script src="d3.min.js"></script>
+		<script src="c3.min.js"></script>
 
 		<!-- Draw Graphs -->
 		<script>
 			var allData;
+			// var variables = [["TIME", "CAR_STATE", "RPM", "HV"]];
+			var variables = [[]];
+			var header = ["TIME"];
 			function handleFileSelect(evt) {
 				var file = evt.target.files[0];
 
+				header = ["TIME"];
 				Papa.parse(file, {
 					header: true,
 					dynamicTyping: true,
@@ -27,6 +34,7 @@
 						allData = results;
 						drawCheckBoxes();
 						drawCharts(allData);
+						// header = allData.meta.fields;
 					}
 				});
 
@@ -37,21 +45,14 @@
 			});
 
 			function drawCharts(data) {
-				var array = [["TIME", "RPM", "TORQUE", "MC POWER", "MC CURRENT"]];
-				// var array = [[]];
-				// for(x in allData.meta.fields) {
-				// 	var temp = allData.meta.fields[x];
-				// 	if (temp != "") {
-				// 		array[0].push(temp);
-				// 	}
-				// }
-
+				variables = [[]];
+				variables[0] = header;
 				for (var i = 0; i < data.data.length - 1; i++) {
 					var temp = [];
 					var power = 0;
 					var rpm = 0;
-					for (x in array[0]) {
-						var current = array[0][x];
+					for (x in variables[0]) {
+						var current = variables[0][x];
 						var entry = 0.0;
 						entry = data.data[i][current];
 
@@ -62,14 +63,14 @@
 								rpm *= 6.284 // rads 
 							break;
 							case "TORQUE":
-
 							break;
 							case "MC POWER":
 								if (entry < 0) {
 									entry = 0;
 								}
 								power = entry;
-								entry /= 100;
+							break;
+							case "HV":
 							break;
 							default:
 							break;
@@ -83,50 +84,94 @@
 					// console.log("POWRPM ("+ powrpm +") = POWER("+power+")/RPM("+rpm+")");
 					// temp.push(powrpm);
 
-					array.push(temp);
+					variables.push(temp);
 				};
-				// array[0].push("POW / RPM")
-				console.log(array);
+				// variables[0].push("POW / RPM")
+				console.log(variables);
 
 				// drawChart1(array);
-				drawChart2(array);
+				if (variables[0].length >= 2) {
+					// drawChart2(variables);	
+				};
+
+				drawChart3(data);
+
 			}
 
-			function drawChart1(data) {
-				var data = google.visualization.arrayToDataTable(data);
-
-				var options = {
-					title: 'EV2 Viewer',
-					curveType: 'function',
-					legend: { position: 'bottom' },
-					animation: {
-						startup: true,
-						duration: 1
+			function drawChart3(data) {
+				// get time axis
+				variables = [];
+				// go through whole data;
+				for (h in header) {
+					var temp = [];
+					temp.push(header[h]);
+					variables.push(temp);
+				}
+				for (var i = 0; i < data.data.length - 1; i++) {
+					for (x in variables) {
+						var current = variables[x][0];
+						var entry = data.data[i][current];
+						variables[x].push(entry);
 					}
 				};
-
-				var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));
-
-				chart.draw(data, options);
-			}
-
-			function drawChart2(data) {
-
-				var data = google.visualization.arrayToDataTable(data);
-
-				var width = $( document ).width()-50;
-				var options = {
-					chart: {
-					  title: 'EV2 Viewer',
-					},
-					width: width,
-					height: 850,
-					animation: {"startup": true}
+				// data1
+				var x_axis = {
+				};
+				var y_axis = {
 				};
 
-				var chart = new google.charts.Line(document.getElementById('linechart_material'));
+				for (var i = 1; i < variables.length; i++) {
+					var current = variables[i][0];
+					x_axis[current] = 'TIME';
+					y_axis[current] = {
+						show: true,
+						label: { // ADD
+							text: current,
+							position: 'outer-middle'
+						}
+					};
+				};
+				if (variables.length >= 2) {
+					var seconds = false;
+					var d = d3.time.format("%H:%M:%S.%L");
+					try {
+						d.parse(variables[0][1]);
+					}
+					catch(err) {
+						seconds = true;
+					}
 
-				chart.draw(data, options);
+					if (!seconds) {
+						var chart = c3.generate({
+							data: {
+								xFormat: "%H:%M:%S.%L",
+								xs : x_axis,
+								columns: variables
+							},
+							axis: {
+								x: {
+									type: 'timeseries',
+									tick: {
+										format: "%H:%M:%S.%L",
+									}
+								},
+								y_axis
+							}
+						});	
+					}
+					else {
+						var chart = c3.generate({
+							data: {
+								xs : x_axis,
+								columns: variables
+							},
+							axis: {
+								y_axis
+							}
+						});
+					}
+					
+				}
 			}
 
 			// Check Boxes
@@ -147,8 +192,19 @@
 				}
 				$( "div#checkboxes" ).html(output);
 			}
+
 			function drawBox(title) {
-				return "<input type='checkbox' value='" + title + "'>" + title + "<br>";
+				return "<input type='checkbox' value='" + title + "' onclick=\"checkBox(\'"+title+"\')\">" + title + "<br>";
+			}
+			function checkBox(title) {
+				if (header.indexOf(title) == -1) {
+					header.push(title);	
+				}
+				else {
+					header.splice(header.indexOf(title),1);
+				}
+				console.log(header);
+				drawCharts(allData);
 			}
 		</script>
 
@@ -157,6 +213,8 @@
 		<input type="file" id="csv-file" name="files" style="width:100%;"/>
 		<div id="linechart_material" style="padding:10px;padding-top:50px;"></div>
 		<!-- <div id="curve_chart" style="width: 100%; height: 850px"></div> -->
+		
+		<div id="chart" style="width: 100%; height: 850px"></div>
 		<div id ="checkboxes"></div>
 	</body>
 </html>

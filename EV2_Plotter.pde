@@ -49,7 +49,7 @@ String variables[] = {
   "START SWITCH"
 };
 
-boolean mockupSerial = false;
+boolean mockupSerial = true;
 Serial serialPort; // Serial port object
 ControlP5 cp5;
 JSONObject plotterConfigJSON;
@@ -116,6 +116,7 @@ void setup() {
   windowSetup();
   //windowSetup2();  
   fileSetup();
+
   
   // start serial communication
   if (!mockupSerial) {
