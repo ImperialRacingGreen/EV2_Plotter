@@ -109,14 +109,12 @@ float[][] lineGraphValues = new float[3][100];
 float[] lineGraphSampleNumbers = new float[100];
 color[] graphColors = new color[3];
 
-int col = color(0);
-CheckBox checkbox;
-
 void setup() {
   cp5 = new ControlP5(this);
 
   labelSetup();
   windowSetup();
+  //windowSetup2();  
   fileSetup();
 
   
@@ -129,30 +127,12 @@ void setup() {
   else
     serialPort = null;
 
-  checkbox = cp5.addCheckBox("checkBox")
-                .setPosition(100, 200)
-                .setColorForeground(color(120))
-                .setColorActive(color(255))
-                .setColorLabel(color(255))
-                .setSize(40, 40)
-                .setItemsPerRow(3)
-                .setSpacingColumn(30)
-                .setSpacingRow(20)
-                .addItem("0", 0)
-                .addItem("50", 50)
-                .addItem("100", 100)
-                .addItem("150", 150)
-                .addItem("200", 200)
-                .addItem("255", 255)
-                ;
-
 }
 
 String inBuffer; // holds serial message
 String toWrite;
 
 void draw() {
-
   if(mockupSerial || serialPort.available() > 0) {
     if(mockupSerial){
         inBuffer = mockupSerialFunction();
@@ -179,7 +159,9 @@ void draw() {
         drawMCValues(nums);
         drawBMSValues(nums);
         drawCarValues(nums);
-        
+
+        drawGraph(nums);
+        drawRightBar();
         lineVariables[0] = nums[0];
         lineVariables[1] = nums[1];
         lineVariables[2] = nums[2];
@@ -214,16 +196,6 @@ void draw() {
         LineGraph.LineGraph(lineGraphSampleNumbers, lineGraphValues[i]);
     }
   }
-
-  // pushMatrix();
-  
-  // if(toggleValue==true) {
-  //   // fill(255,255,220);
-  // } else {
-  //   // fill(128,128,110);
-  // }
-  
-  // popMatrix();
 }
 
 void labelSetup() {
@@ -233,6 +205,13 @@ void labelSetup() {
                 .setFont(createFont(font_type,font_size))
                 ;
     variableLabels.add(temp);
+  }
+  for(int i = 0; i < 3; i++) {
+    temp = cp5.addTextlabel(graphLines[i] + "line")
+                .setColor(255)
+                .setFont(createFont(font_type,font_size))
+                ;
+    graphLinesLabel.add(temp);
   }
   MCLabel = cp5.addTextlabel("MC")
                 .setColor(255)
@@ -257,7 +236,7 @@ void windowSetup() {
   graphColors[2] = color(207, 0, 15);
 
   // settings save file
-  topSketchPath = sketchPath("");
+  topSketchPath = sketchPath;
   plotterConfigJSON = loadJSONObject(topSketchPath+"/plotter_config.json");
 
   // gui
@@ -281,6 +260,9 @@ void windowSetup() {
 void fileSetup() {
   String filename = String.format("logs/Test (%02d.%02d.%02d on %02d-%02d-%02d).csv", hour(),minute(),second(),year(),month(),day());
   output = createWriter(filename);
+
+  // String firstLine = String.format("Data for Test at %02d:%02d:%02d on %02d-%02d-%02d \n\n", hour(),minute(),second(),year(),month(),day());
+  // output.print(firstLine);
 
   String firstLine = "TIME,";
 
@@ -319,12 +301,89 @@ void setChartSettings() {
   LineGraph.xMin=-100;  
   LineGraph.yMax=int(getPlotterConfigString("lgMaxY")); 
   LineGraph.yMin=int(getPlotterConfigString("lgMinY"));
+  // LineGraph.yMin=0;
+}
+
+void drawGraph(String nums[]) {
+  // int graph_box_width = window_width - 5*2;
+  // int graph_box_height = window_height - BOX_HEIGHT*3 - 5*5;
+  // int start_x = 5;
+  // int start_y = BOX_HEIGHT*3 + 5*4;
+  // noFill();
+  // rect(start_x, start_y, graph_box_width,  graph_box_height);
+}
+
+void drawRightBar() {  
+  // graphColors[0] = color(38, 166, 91);
+  // graphColors[1] = color(248, 148, 6);
+  // graphColors[2] = color(207, 0, 15);
+
+  // 0 - RPM
+  // 1 - TORQUE
+  // 2 - MOTOR TEMP
+  int temp_start_x = 0;
+  int temp_start_y = 0;
+
+  for (int i=0; i<graphLinesLabel.size(); i++) {
+    String label = graphLines[i];
+    temp = graphLinesLabel.get(i);
+    temp.setText(label);
+    temp.setPosition(
+      window_width - BOX_WIDTH,
+      error_y + GRAPH_POS_Y + i*20
+    );
+
+    if (graphLines[i].equals("RPM")){
+      temp.setColorValue(#26A65B);
+    }
+    else if (graphLines[i].equals("TORQUE")){
+      temp.setColorValue(#F89406);
+    }
+    else if (graphLines[i].equals("MOTORTEMP")){
+      temp.setColorValue(#CF000F);
+    }
+    else {
+      temp.setColor(255);
+    }
+  }
 }
 
 void drawValues(String nums[], int start_index, int end_index, int start_x, int start_y, int margin_x, int margin_y, int hor, int ver){
   for (int i = start_index; i <= end_index; i++) {
     String value = nums[i];
-
+    // switch (i) {
+    //   case 7: case 8: case 14: case 15: case 20: case 21:
+    //     if (value.equals("1")) {
+    //       value = "ON";
+    //       fill(38, 166, 91);
+    //     }
+    //     else {
+    //       value = "OFF";
+    //       fill(242, 38, 19);
+    //     }
+    //   break;  
+    //   case 22:
+    //     if (value.equals("0#") || value.equals("0")){
+    //       value = "IDLE";
+    //       noFill();
+    //     }
+    //     else if(value.equals("1#") || value.equals("1")){
+    //       fill(38, 166, 91);
+    //       value = "DRIVE";
+    //     } 
+    //     else if(value.equals("2#") || value.equals("2")){
+    //       fill(242, 38, 19);
+    //       value = "FAULT";
+    //     } 
+    //     else {
+    //       fill(242, 38, 19);
+    //       value += " UNKNOWN";
+    //     }
+    //   break;  
+    //   default :
+    //     noFill();
+    //   break;  
+    // }
     String label = variables[i] + "\n" + value;
     temp = variableLabels.get(i);
     temp.setText(label);
@@ -367,6 +426,12 @@ void drawMCValues(String nums[]) {
 
   drawValues(nums,0,9,start_x,start_y,margin_x,margin_y,1,0);
   drawValues(nums,10,14,start_x,start_y + BOX_HEIGHT,margin_x,margin_y,1,0);
+
+  // int rpm = Integer.parseInt(nums[0]);
+  // float speed = rpm * 0.032;
+  // String speed_value = String.format("%.2f", speed);
+  // String[] temp = {speed_value};
+  // drawValues(temp, 0, 0,start_x+BOX_WIDTH*4,start_y+BOX_HEIGHT,margin_x, margin_y,1,0);
 }
 
 void drawBMSValues(String nums[]) {
@@ -396,27 +461,6 @@ void controlEvent(ControlEvent theEvent) {
     saveJSONObject(plotterConfigJSON, topSketchPath+"/plotter_config.json");
   }
   setChartSettings();
-
-  if (theEvent.isFrom(checkbox)) {
-    // myColorBackground = 0;
-    print("got an event from "+checkbox.getName()+"\t\n");
-    // checkbox uses arrayValue to store the state of 
-    // individual checkbox-items. usage:
-    println(checkbox.getArrayValue());
-    int col = 0;
-    for (int i=0;i<checkbox.getArrayValue().length;i++) {
-      int n = (int)checkbox.getArrayValue()[i];
-      print(n);
-      if(n==1) {
-        // myColorBackground += checkbox.getItem(i).internalValue();
-      }
-    }
-    println();    
-  }
-}
-
-void checkBox(float[] a) {
-  println(a);
 }
 
 // get gui settings from settings file
