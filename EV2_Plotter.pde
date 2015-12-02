@@ -5,6 +5,7 @@ import java.awt.BorderLayout;
 import controlP5.*; // http://www.sojamo.de/libraries/controlP5/
 import processing.serial.*;
 
+//These are all of the variables that are read in from the arduino that need to be displayed
 String variables[] = { 
   "RPM",
   "SPEED",
@@ -49,18 +50,23 @@ String variables[] = {
   "START SWITCH"
 };
 
+//Start a serial communication with the arduino
 boolean mockupSerial = true;
 Serial serialPort; // Serial port object
 ControlP5 cp5;
 JSONObject plotterConfigJSON;
 String topSketchPath = "";
 
-int BOX_WIDTH = 140;
+//Setup box sizes
+
+int BOX_WIDTH = 130;
 int BOX_HEIGHT = 50;
 int BOX_MARGIN_X = 5;
 int BOX_MARGIN_Y = 5;
 int NUM_OF_BOX = 11;
 int NUM_OF_ROW = 6;
+
+//Setup graph sizes and positions
 
 // int GRAPH_WIDTH = window_width - BOX_MARGIN_X * 2;
 // int GRAPH_HEIGHT = window_height - (BOX_HEIGHT + BOX_MARGIN_Y) * NUM_OF_ROW - BOX_MARGIN_Y * 2;
@@ -69,16 +75,36 @@ int GRAPH_HEIGHT = 600;
 int GRAPH_POS_X = BOX_MARGIN_X;
 int GRAPH_POS_Y = (BOX_HEIGHT + BOX_MARGIN_Y) * NUM_OF_ROW + BOX_MARGIN_Y;
 
+//Setup the window sizes
+
 int window_width = BOX_WIDTH * NUM_OF_BOX + BOX_MARGIN_X * 3;
 // int window_height = (BOX_HEIGHT + BOX_MARGIN_Y)*NUM_OF_ROW + GRAPH_HEIGHT + 500;
 int window_height = 1000;
 int font_size = 20;
 String font_type = "Verdana";
 
+//Create a string to hold all of the graph lines
+
 String graphLines[] = {
   "RPM",
+  "SPEED",
   "TORQUE",
-  "MOTORTEMP"
+  "AIR TEMP",
+  "MC TEMP",
+  "MOTOR TEMP",
+  "MC VOLTAGE",
+  "MC CURRENT",
+  "MC POWER",
+  "BMS VOLTAGE",
+  "BMS CURRENT",
+  "BMS SOC",
+  "BMS TEMP",
+  "BMS MINTEMP",
+  "BMS MAXTEMP",
+  "THROTTLE 1",
+  "THROTTLE 2",
+  "AVE THROTTLE",
+  "BRAKE"
 };
 
 // Labels for Variables
@@ -105,32 +131,68 @@ int i;
 int error_x = 96;
 int error_y = 59;
 Graph LineGraph = new Graph(error_x + GRAPH_POS_X, error_y + GRAPH_POS_Y, GRAPH_WIDTH, GRAPH_HEIGHT, color (255));
-float[][] lineGraphValues = new float[3][100];
+float[][] lineGraphValues = new float[4][100];
 float[] lineGraphSampleNumbers = new float[100];
-color[] graphColors = new color[3];
+color[] graphColors = new color[4];
 
+CheckBox checkbox;
+int col = color(0);
+
+
+//Main setup code - initialises everything
 void setup() {
-  cp5 = new ControlP5(this);
-
-  labelSetup();
   windowSetup();
-  //windowSetup2();  
-  fileSetup();
 
+ cp5 = new ControlP5(this);
+ 
+  labelSetup();
+  fileSetup();
   
   // start serial communication
   if (!mockupSerial) {
-    println(Serial.list());
+    //println(Serial.list());
     String serialPortName = Serial.list()[2];
     serialPort = new Serial(this, Serial.list()[2], 115200);
   }
   else
     serialPort = null;
 
+  //Create a checkbox object to holf all of the checkboxes
+  checkbox = cp5.addCheckBox("selectGraphLines")
+   .setPosition(window_width - BOX_WIDTH, GRAPH_POS_Y)
+   .setSize(20,20)
+   .setColorForeground(color(120))
+   .setColorActive(color(255))
+   .setColorLabel(color(255))
+   .setItemsPerRow(1)
+   .setSpacingRow(12)
+   .addItem("Show RPM", 0)
+   .addItem("Show SPEED", 0)
+   .addItem("Show TORQUE", 0)
+   .addItem("Show MOTORTEMP", 0)
+   .addItem("Show AIR TEMP", 0)
+   .addItem("Show MC TEMP", 0)
+   .addItem("Show MOTOR TEMP", 0)
+   .addItem("Show MC VOLTAGE", 0)
+   .addItem("Show MC CURRENT", 0)
+   .addItem("Show MC POWER", 0)
+   .addItem("Show BMS VOLTAGE", 0)
+   .addItem("Show BMS CURRENT", 0)
+   .addItem("Show BMS SOC", 0)
+   .addItem("Show BMS TEMP", 0)
+   .addItem("Show BMS MINTEMP", 0)
+   .addItem("Show BMS MAXTEMP", 0)
+   .addItem("Show THROTTLE 1", 0)
+   .addItem("Show THROTTLE 2", 0)
+   .addItem("Show AVE THROTTLE", 0)
+   .addItem("Show BRAKE", 0)
+   ;
 }
 
 String inBuffer; // holds serial message
 String toWrite;
+
+//Draw the information to the window. New serial data is read in and inputted into the string. The @ startbyte and #stopbyte are removed and a timestamp is added, it is then saved in a file. The string is also split at spaces and inputted into the string[] nums
 
 void draw() {
   if(mockupSerial || serialPort.available() > 0) {
@@ -152,41 +214,47 @@ void draw() {
       // split the string at delimiter (space)
       String[] nums = split(inBuffer, ',');
 
-      String[] lineVariables = new String[3];
+      String[] lineVariables = new String[4];
 
+      //Make sure the correct number of variables have been read in
       if (nums.length == variables.length) {
         background(0);
         drawMCValues(nums);
         drawBMSValues(nums);
         drawCarValues(nums);
-
+        
         drawGraph(nums);
         drawRightBar();
+        
+        //Add the variables to be drawn to the graph to the lines variable array
         lineVariables[0] = nums[0];
         lineVariables[1] = nums[1];
         lineVariables[2] = nums[2];
+        //lineVariables[3] = nums[3];
+        
         int numberOfInvisibleLineGraphs = 0;
+        
         for (i=0; i<lineVariables.length; i++) {
           if (int(getPlotterConfigString("lgVisible"+(i+1))) == 0) {
-            numberOfInvisibleLineGraphs++;
-          }
-        }
-
-        // build the arrays for bar charts and line graphs
-        for (i=0; i<lineVariables.length; i++) {
-          // update line graph
-          try {
-            if (i<lineGraphValues.length) {
-              for (int k=0; k<lineGraphValues[i].length-1; k++) {
-                lineGraphValues[i][k] = lineGraphValues[i][k+1];
-              }
-              lineGraphValues[i][lineGraphValues[i].length-1] = float(lineVariables[i])*float(getPlotterConfigString("lgMultiplier"+(i+1)));
-            }
-          }
-          catch (Exception e) {
-          }
-        }
-      }
+             numberOfInvisibleLineGraphs++;
+           }
+         }
+ 
+         // build the arrays for bar charts and line graphs
+          for (i=0; i<lineVariables.length; i++) {
+           // update line graph
+            try {
+             if ((i<lineGraphValues.length) && ((int)checkbox.getArrayValue()[i] == 1)){
+               for (int k=0; k<lineGraphValues[i].length-1; k++) {
+                 lineGraphValues[i][k] = lineGraphValues[i][k+1];
+               }
+               lineGraphValues[i][lineGraphValues[i].length-1] = float(lineVariables[i])*float(getPlotterConfigString("lgMultiplier"+(i+1)));
+             }
+           }
+           catch (Exception e) {
+           }
+         }
+       }
     }
     
     LineGraph.DrawAxis();
@@ -198,6 +266,7 @@ void draw() {
   }
 }
 
+//Setup the variables for the labels to be drawn
 void labelSetup() {
   for (int i = 0; i < variables.length; i++) {
     temp = cp5.addTextlabel(variables[i])
@@ -206,13 +275,13 @@ void labelSetup() {
                 ;
     variableLabels.add(temp);
   }
-  for(int i = 0; i < 3; i++) {
-    temp = cp5.addTextlabel(graphLines[i] + "line")
-                .setColor(255)
-                .setFont(createFont(font_type,font_size))
-                ;
-    graphLinesLabel.add(temp);
-  }
+  // for(int i = 0; i < 3; i++) {
+  //   temp = cp5.addTextlabel(graphLines[i] + "line")
+  //               .setColor(255)
+  //               .setFont(createFont(font_type,font_size))
+  //               ;
+  //   graphLinesLabel.add(temp);
+  // }
   MCLabel = cp5.addTextlabel("MC")
                 .setColor(255)
                 .setFont(createFont(font_type,font_size))
@@ -227,16 +296,19 @@ void labelSetup() {
                 ;
 }
 
-void windowSetup() {
-  frame.setTitle("EV2 DYNO");
 
-  size(window_width, window_height);
+
+//Setup the display window for the chart and values
+void windowSetup() {
+  surface.setTitle("EV2 DYNO");
+  surface.setSize(window_width, window_height);
   graphColors[0] = color(38, 166, 91);
   graphColors[1] = color(248, 148, 6);
   graphColors[2] = color(207, 0, 15);
+  //graphColors[3] = color(0,0,255);
 
   // settings save file
-  topSketchPath = sketchPath;
+  topSketchPath = sketchPath("");
   plotterConfigJSON = loadJSONObject(topSketchPath+"/plotter_config.json");
 
   // gui
@@ -257,6 +329,7 @@ void windowSetup() {
   }
 }
 
+//Setup the file to store the data in, data is stored as an entry with a timestamp
 void fileSetup() {
   String filename = String.format("logs/Test (%02d.%02d.%02d on %02d-%02d-%02d).csv", hour(),minute(),second(),year(),month(),day());
   output = createWriter(filename);
@@ -276,6 +349,7 @@ void fileSetup() {
   output.print(firstLine);
 }
 
+//If the escape key is pressed, exit the program and clear the buffers
 void keyPressed() {
   if(key == 27){
     for(String x : values) {
@@ -292,6 +366,7 @@ void keyPressed() {
   }
 }
 
+//Set the settings for the graph
 void setChartSettings() {
   LineGraph.xLabel=" Samples ";
   LineGraph.yLabel="Value";
@@ -313,6 +388,7 @@ void drawGraph(String nums[]) {
   // rect(start_x, start_y, graph_box_width,  graph_box_height);
 }
 
+// Draw the bar on the right hand side of the screen
 void drawRightBar() {  
   // graphColors[0] = color(38, 166, 91);
   // graphColors[1] = color(248, 148, 6);
@@ -342,48 +418,20 @@ void drawRightBar() {
     else if (graphLines[i].equals("MOTORTEMP")){
       temp.setColorValue(#CF000F);
     }
+    else if(graphLines[i].equals("SPEED")){
+      temp.setColorValue(#0000FF);
+    }
     else {
       temp.setColor(255);
     }
   }
 }
 
+//Draw the boxes to contain the values and insert the value into them.
 void drawValues(String nums[], int start_index, int end_index, int start_x, int start_y, int margin_x, int margin_y, int hor, int ver){
   for (int i = start_index; i <= end_index; i++) {
     String value = nums[i];
-    // switch (i) {
-    //   case 7: case 8: case 14: case 15: case 20: case 21:
-    //     if (value.equals("1")) {
-    //       value = "ON";
-    //       fill(38, 166, 91);
-    //     }
-    //     else {
-    //       value = "OFF";
-    //       fill(242, 38, 19);
-    //     }
-    //   break;  
-    //   case 22:
-    //     if (value.equals("0#") || value.equals("0")){
-    //       value = "IDLE";
-    //       noFill();
-    //     }
-    //     else if(value.equals("1#") || value.equals("1")){
-    //       fill(38, 166, 91);
-    //       value = "DRIVE";
-    //     } 
-    //     else if(value.equals("2#") || value.equals("2")){
-    //       fill(242, 38, 19);
-    //       value = "FAULT";
-    //     } 
-    //     else {
-    //       fill(242, 38, 19);
-    //       value += " UNKNOWN";
-    //     }
-    //   break;  
-    //   default :
-    //     noFill();
-    //   break;  
-    // }
+
     String label = variables[i] + "\n" + value;
     temp = variableLabels.get(i);
     temp.setText(label);
@@ -401,6 +449,7 @@ void drawValues(String nums[], int start_index, int end_index, int start_x, int 
   }
 }
 
+//Draw the boxes containing the car values
 void drawCarValues(String nums[]) {
   CarLabel.setText("Car");
   CarLabel.setPosition(BOX_MARGIN_X,BOX_MARGIN_Y);
@@ -415,6 +464,7 @@ void drawCarValues(String nums[]) {
   drawValues(nums,36,40,start_x,start_y+BOX_HEIGHT,margin_x,margin_y,1,0);
 }
 
+//Draw the boxes containing the MC values
 void drawMCValues(String nums[]) {
   MCLabel.setText("Motor\nController");
   MCLabel.setPosition(BOX_MARGIN_X,BOX_MARGIN_Y+BOX_HEIGHT+BOX_MARGIN_Y);
@@ -434,6 +484,7 @@ void drawMCValues(String nums[]) {
   // drawValues(temp, 0, 0,start_x+BOX_WIDTH*4,start_y+BOX_HEIGHT,margin_x, margin_y,1,0);
 }
 
+//Draw the boxes containing the BMS Values
 void drawBMSValues(String nums[]) {
   BMSLabel.setText("BMS");
   BMSLabel.setPosition(BOX_MARGIN_X,BOX_MARGIN_Y+(BOX_HEIGHT+BOX_MARGIN_Y)*2);
@@ -449,6 +500,12 @@ void drawBMSValues(String nums[]) {
 
 // handle gui actions
 void controlEvent(ControlEvent theEvent) {
+  //If the event is a checkbox being clicked
+  if(theEvent.isFrom(checkbox)){
+      print("got an event from "+checkbox.getName()+"\t\n");
+      println(checkbox.getArrayValue());
+  }
+
   if (theEvent.isAssignableFrom(Textfield.class) || theEvent.isAssignableFrom(Toggle.class) || theEvent.isAssignableFrom(Button.class)) {
     String parameter = theEvent.getName();
     String value = "";
