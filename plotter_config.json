@@ -4,7 +4,8 @@
   "lgMinY": "-100",
   "lgMultiplier3": "1",
   "lgMultiplier2": "1",
-  "lgVisible3": "1.0",
   "lgMultiplier1": "0.1",
-  "lgMaxY": "100"
+  "lgVisible3": "1.0",
+  "lgMaxY": "100",
+  "toggleValue": "0.0"
 }
